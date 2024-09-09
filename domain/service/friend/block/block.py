@@ -68,7 +68,6 @@ async def get_blocked(
 
         result = session.run(query)
         records = result.data()
-        print(records)
         response = [
             GetBlockedResponse.from_data(record["b.edge_id"], record["blocked_user"])
             for record in records
