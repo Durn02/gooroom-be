@@ -331,15 +331,14 @@ async def get_member(
         WITH friend, b , r,  collect(sticker) AS stickers
         OPTIONAL MATCH (friend)<-[:is_post]-(post:Post)
         WITH friend, b , r, stickers, collect(post) AS posts
-        OPTIONAL MATCH (friend)-[c:cast]->(:User)
-        WITH friend, b , r, stickers,posts, {{casts : apoc.map.groupBy(collect(c), 'cast_id')}} AS casts
+        WITH friend, b , r, stickers,posts
         RETURN 
         CASE 
             WHEN friend IS NULL THEN "no such node {get_friend_request.user_node_id}"
             WHEN b IS NOT NULL THEN "block exists"
             ELSE "welcome my friend"
         END AS message,
-        friend , r, stickers,posts, casts
+        friend , r, stickers,posts
         """
 
         result = session.run(query)
