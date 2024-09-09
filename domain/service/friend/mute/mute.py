@@ -65,7 +65,6 @@ async def get_muteed(
 
         result = session.run(query)
         records = result.data()
-        print(records)
         response = [
             GetMutedResponse.from_data(record["m.edge_id"], record["muted_user"])
             for record in records
