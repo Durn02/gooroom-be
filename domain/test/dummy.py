@@ -61,7 +61,7 @@ CALL apoc.do.when(
     CREATE (u:User {
       username: data.username,
       nickname: data.nickname,
-      concern: ["string"],
+      tag: ["string"],
       my_memo: "",
       node_id: data.node_id
     })
@@ -90,38 +90,38 @@ MATCH (u12:User {nickname: 'goo1'})
 MATCH (u13:User {nickname: 'young_tiger'})
 
 
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u2)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u3)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u4)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u5)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u6)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u8)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u9)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u11)
-MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u12)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u2)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u3)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u4)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u5)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u6)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u8)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u9)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u11)
+MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u12)
 
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u2)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u3)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u4)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u5)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u6)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u8)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u9)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u11)
-MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u12)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u2)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u3)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u4)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u5)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u6)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u8)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u9)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u11)
+MERGE (u1)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u12)
 
 
-MERGE (u6)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u7)
-MERGE (u6)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u10)
-MERGE (u8)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u10)
-MERGE (u11)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u12)
-MERGE (u9)-[:is_roommate {edge_id: randomUUID(), memo: ''}]->(u13)
+MERGE (u6)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u7)
+MERGE (u6)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u10)
+MERGE (u8)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u10)
+MERGE (u11)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u12)
+MERGE (u9)-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]->(u13)
 
-MERGE (u6)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u7)
-MERGE (u6)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u10)
-MERGE (u8)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u10)
-MERGE (u11)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u12)
-MERGE (u9)<-[:is_roommate {edge_id: randomUUID(), memo: ''}]-(u13)
+MERGE (u6)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u7)
+MERGE (u6)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u10)
+MERGE (u8)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u10)
+MERGE (u11)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u12)
+MERGE (u9)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u13)
 
 RETURN "Success"
 """
