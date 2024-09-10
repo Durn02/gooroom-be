@@ -124,4 +124,14 @@ MERGE (u11)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u1
 MERGE (u9)<-[:is_roommate {edge_id: randomUUID(), memo: '', cluster: ['']}]-(u13)
 
 RETURN "Success"
+;
+"""
+
+
+DELETE_DUMMY_DATA_QUERY = """
+MATCH p=()-[]->(U:User)
+WHERE U.username CONTAINS "test"
+DETACH DELETE p
+RETURN "Success"
+;
 """
