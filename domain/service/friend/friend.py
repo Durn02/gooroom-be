@@ -40,7 +40,6 @@ async def send_knock(
     from_user_node_id = verify_access_token(token)["user_node_id"]
     to_user_node_id = send_knock_request.to_user_node_id
     knock_edge_id = str(uuid.uuid4())
-    print(knock_edge_id)
 
     try:
         query = f"""
@@ -60,7 +59,6 @@ async def send_knock(
 
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(
                 status_code=404,
@@ -85,7 +83,6 @@ async def list_knock(
     logger.info("list_knock")
     token = request.cookies.get(access_token)
     user_node_id = verify_access_token(token)["user_node_id"]
-    print("user_node_id : ", user_node_id)
     try:
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})<-[k:knock]-(from_user:User)
@@ -94,8 +91,6 @@ async def list_knock(
 
         result = session.run(query)
         records = result.data()
-
-        print(records)
 
         result_list = ListKnockResponse(knocks=[])
         for record in records:
@@ -130,7 +125,6 @@ async def reject_knock(
         """
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(status_code=400, detail="no such knock_edge")
 
@@ -173,7 +167,6 @@ async def accept_knock(
 
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(status_code=400, detail="no such knock_edge")
 
@@ -213,7 +206,6 @@ async def create_knock_by_link(
 
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(status_code=400, detail="failed to create link")
 
@@ -257,7 +249,6 @@ async def accept_knock_by_link(
 
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(
                 status_code=400, detail="Cannot create is_roommate relationship"
@@ -300,7 +291,6 @@ async def get_members(
         result = session.run(query)
         record = result.data()
 
-        print("record : ", record)
         return record
 
     except HTTPException as e:
@@ -331,15 +321,14 @@ async def get_member(
         WITH friend, b , r,  collect(sticker) AS stickers
         OPTIONAL MATCH (friend)<-[:is_post]-(post:Post)
         WITH friend, b , r, stickers, collect(post) AS posts
-        OPTIONAL MATCH (friend)-[c:cast]->(:User)
-        WITH friend, b , r, stickers,posts, {{casts : apoc.map.groupBy(collect(c), 'cast_id')}} AS casts
+        WITH friend, b , r, stickers,posts
         RETURN 
         CASE 
             WHEN friend IS NULL THEN "no such node {get_friend_request.user_node_id}"
             WHEN b IS NOT NULL THEN "block exists"
             ELSE "welcome my friend"
         END AS message,
-        friend , r, stickers,posts, casts
+        friend , r, stickers,posts
         """
 
         result = session.run(query)
@@ -373,7 +362,6 @@ async def delete_member(
     logger.info("delete_member")
     token = request.cookies.get(access_token)
     user_node_id = verify_access_token(token)["user_node_id"]
-    print(user_node_id)
     try:
         query = f"""
         MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{delete_friend_request.user_node_id}'}})
@@ -387,7 +375,6 @@ async def delete_member(
 
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(
                 status_code=404,
@@ -416,10 +403,15 @@ async def get_memo(
 
     try:
         query = f"""
-        MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{get_memo_request.user_node_id}'}})
-        WHERE f.node_id = '{user_node_id}'
+        MATCH (u:User {{node_id: '{user_node_id}'}})-[r:is_roommate]->(f:User {{node_id: '{get_memo_request.user_node_id}'}})
         RETURN r.memo AS memo
         """
+        # f"""
+        # MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{get_memo_request.user_node_id}'}})
+        # WHERE f.node_id = '{user_node_id}'
+        # RETURN r.memo AS memo
+        # """
+
         result = session.run(query)
         record = result.single()
 

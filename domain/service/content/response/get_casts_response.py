@@ -1,21 +1,39 @@
 from pydantic import BaseModel
-from typing import Dict
+from typing import List, Dict
+
+class CastNode(BaseModel):
+    duration: str
+    created_at: str
+    message: str
+    deleted_at: str
+    node_id: str
+
+class Creator(BaseModel):
+    my_memo: str
+    nickname: str
+    username: str
+    node_id: str
+    concern: List[str]
 
 class GetCastsResponse(BaseModel):
-    cast_edge_id:str
-    cast_id:str
-    message:str
-    created_at:str
-    friend_nickname:str
-    friend_node_id:str
+    cast_node: CastNode
+    creator: Creator
 
     @classmethod
-    def from_data(cls, cast: Dict[str,str] ,friend:Dict[str,str]):
+    def from_data(cls, cast: Dict[str, str], creator: Dict[str, str]):
         return cls(
-            cast_edge_id = cast.get("edge_id",''),
-            cast_id=cast.get("cast_id",''),
-            message=cast.get("message", ''),
-            created_at=cast.get("created_at",''),
-            friend_nickname=friend.get("nickname"),
-            friend_node_id=friend.get("node_id",'')
+            cast_node=CastNode(
+                duration=cast.get("duration", ''),
+                created_at=cast.get("created_at", ''),
+                message=cast.get("message", ''),
+                deleted_at=cast.get("deleted_at", ''),
+                node_id=cast.get("node_id", '')
+            ),
+            creator=Creator(
+                my_memo=creator.get("my_memo", ''),
+                nickname=creator.get("nickname", ''),
+                username=creator.get("username", ''),
+                node_id=creator.get("node_id", ''),
+                concern=creator.get("concern", [])
+            )
         )

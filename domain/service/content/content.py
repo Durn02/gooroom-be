@@ -1,4 +1,5 @@
 # backend/domain/service/content/content.py
+# import asyncio
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
 from utils import verify_access_token, Logger
 from config.connection import get_session
@@ -298,7 +299,6 @@ async def get_posts(
     finally:
         session.close()
 
-
 @router.get("/post/get-my-contents", response_model=List[GetPostsResponse])
 async def get_my_posts(
     request: Request,
@@ -328,7 +328,6 @@ async def get_my_posts(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
-
 
 @router.post("/post/modify-my-content", response_model=GetPostsResponse)
 async def modify_my_post(
@@ -392,7 +391,6 @@ async def modify_my_post(
     finally:
         session.close()
 
-
 @router.delete("/post/delete-my-content", response_model=DeleteMyPostResponse)
 async def delete_my_post(
     request: Request,
@@ -434,7 +432,6 @@ async def delete_my_post(
     finally:
         session.close()
 
-
 @router.post("/cast/send", response_model=SendCastResponse)
 async def send_cast(
     request: Request,
@@ -448,14 +445,16 @@ async def send_cast(
 
     try:
         query = f"""
+        CREATE (cast_node:Cast {{node_id:randomUUID(),message:'{send_cast_request.message}',created_at:'{datetimenow}',duration:{send_cast_request.duration},deleted_at:''}})
+        WITH cast_node
         MATCH (me:User {{node_id: '{user_node_id}'}})
+        CREATE (me)<-[:creator_of_cast {{edge_id:randomUUID()}}]-(cast_node)
+        WITH cast_node,me
         UNWIND {send_cast_request.friends} AS friend_node_id
         MATCH (friend:User {{node_id: friend_node_id}})
         WHERE NOT (friend)-[:mute]->(me)
-        CREATE (me)-[c:cast 
-            {{edge_id: randomUUID(),created_at:'{datetimenow}',message:'{send_cast_request.message}', deleted_at:'',cast_id:'{cast_id}'}}]
-        ->(friend)
-        RETURN collect(c) AS friends
+        CREATE (friend)<-[:receiver_of_cast {{new:true, edge_id:randomUUID()}}]-(cast_node)
+        RETURN cast_node, collect(friend) AS friends
         """
 
         result = session.run(query)
@@ -475,16 +474,18 @@ async def send_cast(
     finally:
         session.close()
 
-
 async def delete_old_casts():
     session = get_session()
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
+    print("datetimenow : ", datetimenow)
+
     try:
         query = f"""
-        MATCH ()-[c:cast]->() 
-        WHERE datetime(c.created_at) <= datetime() - duration({{hours: 1}})
-        SET c.delete_at = '{datetimenow}'
+        MATCH (cast_node:Cast)
+        WHERE datetime(cast_node.created_at)+duration({{hours:cast_node.duration}}) <= datetime()
+        SET cast_node.deleted_at = '{datetimenow}'
+        return cast_node
         """
         result = session.run(query)
         record = result.single()
@@ -498,7 +499,7 @@ async def delete_old_casts():
 
 
 @router.get("/cast/get-contents", response_model=List[GetCastsResponse])
-async def get_casts(
+async def get_new_casts(
     request: Request,
     session=Depends(get_session),
 ):
@@ -508,10 +509,12 @@ async def get_casts(
     try:
         query = f"""
         MATCH (me: User {{node_id: '{user_node_id}'}})
-        MATCH (me)<-[c:cast]-(friend:User)
-        WHERE NOT (me)-[:mute]->(friend)
-        AND c.delete_at is NULL
-        RETURN {{content:properties(c),from:friend}} AS cast
+        MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
+        WHERE cast_node.deleted_at = ""
+        AND cast_edge.new
+        WITH cast_node
+        MATCH (cast_node)-[:creator_of_cast]->(creator:User)
+        RETURN cast_node,creator
         """
 
         result = session.run(query)
@@ -519,8 +522,8 @@ async def get_casts(
 
         if not records:
             raise HTTPException(status_code=500, detail=f"no such user {user_node_id} or no any valid friends")
-
-        response = [GetCastsResponse.from_data(cast['content'], cast['from']) for r in records if (cast := r['cast'])]
+    
+        response = [GetCastsResponse.from_data(record["cast_node"],record["creator"]) for record in records]
         return response
 
     except HTTPException as e:
@@ -529,3 +532,18 @@ async def get_casts(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
+# @router.get("/cast/long_poll/{user_node_id}")
+# async def long_poll(
+#     user_node_id: str,
+# ):
+#     try:
+#         for _ in range(30):
+#             new_casts = await get_new_casts(user_node_id)
+#             if new_casts:
+#                 return {"new_exists": True, "cast": new_casts}
+#             await asyncio.sleep(10)
+#         return {"new_exists": False}
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
