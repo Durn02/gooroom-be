@@ -23,7 +23,6 @@ share/python-wheels/
 *.egg
 
 # Virtual environments
-
 env/
 venv/
 .venv/
@@ -52,3 +51,6 @@ dmypy.json
 .env
 *.env
 secret.txt
+
+# misc
+.DS_Store
