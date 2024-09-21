@@ -1,5 +1,5 @@
 # backend/domain/service/content/content.py
-# import asyncio
+import asyncio
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
 from utils import verify_access_token, Logger
 from config.connection import get_session
@@ -26,7 +26,6 @@ from .response import (
     SendCastResponse,
     GetCastsResponse,
 )
-import uuid
 
 logger = Logger(__file__)
 router = APIRouter()
@@ -441,7 +440,6 @@ async def send_cast(
     token = request.cookies.get(access_token)
     user_node_id = verify_access_token(token)["user_node_id"]
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    cast_id = uuid.uuid4()
 
     try:
         query = f"""
@@ -488,7 +486,7 @@ async def delete_old_casts():
         return cast_node
         """
         result = session.run(query)
-        record = result.single()
+        record = result.data()
 
         logger.info(f"delete_old_casts : {record}")
 
@@ -509,11 +507,11 @@ async def get_new_casts(
     try:
         query = f"""
         MATCH (me: User {{node_id: '{user_node_id}'}})
-        MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
+        OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
         WHERE cast_node.deleted_at = ""
         AND cast_edge.new
         WITH cast_node
-        MATCH (cast_node)-[:creator_of_cast]->(creator:User)
+        OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
         RETURN cast_node,creator
         """
 
@@ -521,9 +519,13 @@ async def get_new_casts(
         records = result.data()
 
         if not records:
-            raise HTTPException(status_code=500, detail=f"no such user {user_node_id} or no any valid friends")
-    
-        response = [GetCastsResponse.from_data(record["cast_node"],record["creator"]) for record in records]
+            raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
+
+        response = [
+            GetCastsResponse.from_data(record["cast_node"], record["creator"])
+            for record in records
+            if record.get("cast_node") is not None and record.get("creator") is not None
+        ]
         return response
 
     except HTTPException as e:
@@ -533,17 +535,48 @@ async def get_new_casts(
     finally:
         session.close()
 
-# @router.get("/cast/long_poll/{user_node_id}")
-# async def long_poll(
-#     user_node_id: str,
-# ):
-#     try:
-#         for _ in range(30):
-#             new_casts = await get_new_casts(user_node_id)
-#             if new_casts:
-#                 return {"new_exists": True, "cast": new_casts}
-#             await asyncio.sleep(10)
-#         return {"new_exists": False}
+@router.get("/long_poll")
+async def long_poll(
+    request: Request,
+):
+    token = request.cookies.get(access_token)
+    user_node_id = verify_access_token(token)["user_node_id"]
 
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+ 
+    for _ in range(3):
+        new_contents = []
+        session = get_session()
+        try:   
+            query = f"""
+            MATCH (me: User {{node_id: '{user_node_id}'}})
+            OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
+            WHERE cast_node.deleted_at = ""
+            AND cast_edge.new
+            WITH cast_node
+            OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
+            RETURN cast_node,creator
+            """
+
+            result = session.run(query)
+            records = result.data()
+            print("records : ", records)
+
+            if not records:
+               raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
+
+            new_contents = [
+                GetCastsResponse.from_data(record["cast_node"], record["creator"])
+                for record in records
+                if record.get("cast_node") is not None and record.get("creator") is not None
+            ]
+            
+            print("new_contents : ", new_contents)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            session.close()
+
+        if new_contents:
+            return {"new_exists": True, "contents": new_contents}
+        else:
+            await asyncio.sleep(10)

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List, Dict
 
 class CastNode(BaseModel):
-    duration: str
+    duration: int
     created_at: str
     message: str
     deleted_at: str
@@ -23,7 +23,7 @@ class GetCastsResponse(BaseModel):
     def from_data(cls, cast: Dict[str, str], creator: Dict[str, str]):
         return cls(
             cast_node=CastNode(
-                duration=cast.get("duration", ''),
+                duration=cast.get("duration", 0),
                 created_at=cast.get("created_at", ''),
                 message=cast.get("message", ''),
                 deleted_at=cast.get("deleted_at", ''),
