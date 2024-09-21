@@ -283,6 +283,22 @@ async def get_members(
             [n IN apoc.coll.toSet(apoc.coll.flatten(COLLECT(neighbors))) WHERE NOT n IN roommates] AS neighbors
         """
 
+        query = f"""
+        MATCH (u:User {{node_id: '{user_node_id}'}})-[is_roommate_edge:is_roommate]->(roommate:User)
+        WITH u, collect({{roommate: roommate, is_roommate_edge: properties(is_roommate_edge)}}) AS roommates
+        UNWIND roommates AS roommate_info
+        WITH u, roommate_info.roommate AS roommate, roommate_info.is_roommate_edge AS is_roommate_edge, roommates
+        OPTIONAL MATCH (roommate)-[:is_roommate]->(neighbor:User)
+        WHERE NOT (u)-[:block]->(neighbor)
+        AND neighbor <> u
+        WITH u, roommate, is_roommate_edge, roommates, collect(neighbor) AS neighbors
+        RETURN
+            u,
+            collect({{roommate:roommate, neighbors:neighbors}}) AS roommates_with_neighbors, 
+            roommates,
+            [n IN apoc.coll.toSet(apoc.coll.flatten(COLLECT(neighbors))) WHERE NOT n IN [r IN roommates | r.roommate]] AS neighbors
+        """
+
         result = session.run(query)
         record = result.data()
 
@@ -323,7 +339,7 @@ async def get_member(
             WHEN b IS NOT NULL THEN "block exists"
             ELSE "welcome my friend"
         END AS message,
-        friend , r, stickers,posts
+        friend , properties(r) As roommate_edge, stickers,posts
         """
 
         result = session.run(query)
@@ -332,12 +348,13 @@ async def get_member(
         if record["message"] != "welcome my friend":
             raise HTTPException(status_code=404, detail=record["message"])
 
+        # return record
+
         return GetFriendResponse.from_data(
             dict(record["friend"]),
-            dict(record["r"]),
+            dict(record["roommate_edge"]),
             record["stickers"],
             record["posts"],
-            record["casts"],
         )
 
     except HTTPException as e:
@@ -461,3 +478,40 @@ async def modify_memo(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
+# @router.post("/group/modify", response_model=ModifyMemoResponse)
+# @router.post("/group/modify")
+# async def modify_group(
+#     request: Request,
+#     session=Depends(get_session),
+#     modify_memo_request: ModifyMemoRequest = Body(...),
+# ):
+#     logger.info("modify_memo")
+#     token = request.cookies.get(access_token)
+#     user_node_id = verify_access_token(token)["user_node_id"]
+
+#     try:
+#         query = f"""
+#         MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{modify_memo_request.user_node_id}'}})
+#         WHERE u.node_id = '{user_node_id}'
+#         SET r.memo = '{modify_memo_request.new_memo}'
+#         RETURN r.memo AS memo
+#         """
+
+#         result = session.run(query)
+#         record = result.single()
+
+#         if not record:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"No such friend {modify_memo_request.user_node_id} to modify memo",
+#             )
+
+#         return ModifyMemoResponse()
+
+#     except HTTPException as e:
+#         raise e
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+#     finally:
+#         session.close()
