@@ -391,7 +391,7 @@ async def delete_member(
         session.close()
 
 
-@router.get("/memo/get-content", response_model=GetMemoResponse)
+@router.post("/memo/get-content", response_model=GetMemoResponse)
 async def get_memo(
     request: Request,
     session=Depends(get_session),
@@ -403,10 +403,15 @@ async def get_memo(
 
     try:
         query = f"""
-        MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{get_memo_request.user_node_id}'}})
-        WHERE f.node_id = '{user_node_id}'
+        MATCH (u:User {{node_id: '{user_node_id}'}})-[r:is_roommate]->(f:User {{node_id: '{get_memo_request.user_node_id}'}})
         RETURN r.memo AS memo
         """
+        # f"""
+        # MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{get_memo_request.user_node_id}'}})
+        # WHERE f.node_id = '{user_node_id}'
+        # RETURN r.memo AS memo
+        # """
+
         result = session.run(query)
         record = result.single()
 
