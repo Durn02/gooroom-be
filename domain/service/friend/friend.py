@@ -10,6 +10,7 @@ from .request import (
     DeleteFriendRequest,
     GetMemoRequest,
     ModifyMemoRequest,
+    ModifyGroupRequest,
 )
 from .response import (
     ListKnockResponse,
@@ -20,6 +21,7 @@ from .response import (
     GetMemoResponse,
     ModifyMemoResponse,
     RejectKnockResponse,
+    ModifyGroupResponse,
 )
 from datetime import datetime, timedelta, timezone
 import uuid
@@ -156,8 +158,8 @@ async def accept_knock(
         OPTIONAL MATCH (from_user)<-[k2:knock]-(to_user)
         WITH from_user, to_user, k1, k2
         WHERE from_user <> to_user
-        CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(to_user)
-        CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(from_user)
+        CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(to_user)
+        CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(from_user)
         DELETE k1, k2
         RETURN "Roommate relationship created" AS message
         """
@@ -479,39 +481,39 @@ async def modify_memo(
     finally:
         session.close()
 
-# @router.post("/group/modify", response_model=ModifyMemoResponse)
-# @router.post("/group/modify")
-# async def modify_group(
-#     request: Request,
-#     session=Depends(get_session),
-#     modify_memo_request: ModifyMemoRequest = Body(...),
-# ):
-#     logger.info("modify_memo")
-#     token = request.cookies.get(access_token)
-#     user_node_id = verify_access_token(token)["user_node_id"]
 
-#     try:
-#         query = f"""
-#         MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{modify_memo_request.user_node_id}'}})
-#         WHERE u.node_id = '{user_node_id}'
-#         SET r.memo = '{modify_memo_request.new_memo}'
-#         RETURN r.memo AS memo
-#         """
+@router.post("/group/modify", response_model=ModifyGroupResponse)
+async def modify_group(
+    request: Request,
+    session=Depends(get_session),
+    modify_group_request: ModifyGroupRequest = Body(...),
+):
+    logger.info("modify_group")
+    token = request.cookies.get(access_token)
+    user_node_id = verify_access_token(token)["user_node_id"]
 
-#         result = session.run(query)
-#         record = result.single()
+    try:
+        query = f"""
+        MATCH (u:User)-[r:is_roommate]->(f:User {{node_id: '{modify_group_request.user_node_id}'}})
+        WHERE u.node_id = '{user_node_id}'
+        SET r.group = '{modify_group_request.new_group}'
+        RETURN r.group AS group
+        """
 
-#         if not record:
-#             raise HTTPException(
-#                 status_code=404,
-#                 detail=f"No such friend {modify_memo_request.user_node_id} to modify memo",
-#             )
+        result = session.run(query)
+        record = result.single()
 
-#         return ModifyMemoResponse()
+        if not record:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No such group {modify_group_request.user_node_id} to modify group",
+            )
 
-#     except HTTPException as e:
-#         raise e
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-#     finally:
-#         session.close()
+        return ModifyGroupResponse()
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
