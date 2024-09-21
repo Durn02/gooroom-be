@@ -146,9 +146,6 @@ async def accept_knock(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
-        edge_id_1 = str(uuid.uuid4())
-        edge_id_2 = str(uuid.uuid4())
-
         query = f"""
         MATCH (to_user:User {{node_id: '{user_node_id}'}})<-[k1:knock]-(from_user:User)
         WHERE k1.edge_id = '{accept_knock_request.knock_id}'
@@ -159,8 +156,8 @@ async def accept_knock(
         OPTIONAL MATCH (from_user)<-[k2:knock]-(to_user)
         WITH from_user, to_user, k1, k2
         WHERE from_user <> to_user
-        CREATE (from_user)-[:is_roommate {{memo: '', edge_id: '{edge_id_1}'}}]->(to_user)
-        CREATE (to_user)-[:is_roommate {{memo: '', edge_id: '{edge_id_2}'}}]->(from_user)
+        CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(to_user)
+        CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(from_user)
         DELETE k1, k2
         RETURN "Roommate relationship created" AS message
         """
@@ -229,8 +226,6 @@ async def accept_knock_by_link(
 
     try:
         datetimenow = datetime.now().replace(microsecond=0).isoformat()
-        edge_id_1 = str(uuid.uuid4())
-        edge_id_2 = str(uuid.uuid4())
 
         query = f"""
             MATCH (u:User)<-[:is_info]-(p:PrivateData)
@@ -242,8 +237,8 @@ async def accept_knock_by_link(
             WHERE NOT (from_user)-[:is_roommate]-(to_user)
             AND NOT (from_user)-[:block]-(to_user)
             AND NOT (to_user)-[:block]-(from_user)
-            CREATE (from_user)-[:is_roommate {{memo: '', edge_id: '{edge_id_1}'}}]->(to_user)
-            CREATE (to_user)-[:is_roommate {{memo: '', edge_id: '{edge_id_2}'}}]->(from_user)
+            CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(to_user)
+            CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(from_user)
             RETURN 'Knock accepted successfully' AS message, expiration_time_str, expiration_time
             """
 
