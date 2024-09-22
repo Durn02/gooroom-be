@@ -1,10 +1,10 @@
 # backend/domain/service/content/content.py
 import asyncio
+from typing import List
+from datetime import datetime, timezone
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
 from utils import verify_access_token, Logger
 from config.connection import get_session
-from typing import List
-from datetime import datetime, timezone
 from .request import (
     CreateStickerRequest,
     GetStickersRequest,
@@ -105,10 +105,13 @@ async def get_stickers(
         result = session.run(query)
         record = result.single()
 
-        if record['message'] != "get stickers":
-            raise HTTPException(status_code=404, detail=record['message'])
+        if record["message"] != "get stickers":
+            raise HTTPException(status_code=404, detail=record["message"])
 
-        return [GetStickersResponse.from_data(dict(sticker)) for sticker in record['stickers']]
+        return [
+            GetStickersResponse.from_data(dict(sticker))
+            for sticker in record["stickers"]
+        ]
 
     except HTTPException as e:
         raise e
@@ -137,7 +140,10 @@ async def get_my_stickers(request: Request, session=Depends(get_session)):
         if not record:
             raise HTTPException(status_code=404, detail=f"no such user {user_node_id}")
 
-        return [GetMyStickersResponse.from_data(dict(sticker)) for sticker in record['stickers']]
+        return [
+            GetMyStickersResponse.from_data(dict(sticker))
+            for sticker in record["stickers"]
+        ]
 
     except HTTPException as e:
         raise e
@@ -146,7 +152,8 @@ async def get_my_stickers(request: Request, session=Depends(get_session)):
     finally:
         session.close()
 
-@router.delete("/sticker/delete",response_model=DeleteStickerResponse)
+
+@router.delete("/sticker/delete", response_model=DeleteStickerResponse)
 async def delete_sticker(
     request: Request,
     session=Depends(get_session),
@@ -178,11 +185,10 @@ async def delete_sticker(
         result = session.run(query)
         record = result.single()
 
-        if record['message']!='Sticker and relationship deleted':        
-            raise HTTPException(status_code=500, detail=record['message'])
-        
-        return DeleteStickerResponse(message=record['message'])
-            
+        if record["message"] != "Sticker and relationship deleted":
+            raise HTTPException(status_code=500, detail=record["message"])
+
+        return DeleteStickerResponse(message=record["message"])
 
     except HTTPException as e:
         raise e
@@ -190,6 +196,7 @@ async def delete_sticker(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 async def delete_old_stickers():
     session = get_session()
@@ -286,10 +293,10 @@ async def get_posts(
         result = session.run(query)
         record = result.single()
 
-        if record['message'] != "get posts":
-            raise HTTPException(status_code=404, detail=record['message'])
+        if record["message"] != "get posts":
+            raise HTTPException(status_code=404, detail=record["message"])
 
-        return [GetPostsResponse.from_data(dict(post)) for post in record['posts']]
+        return [GetPostsResponse.from_data(dict(post)) for post in record["posts"]]
 
     except HTTPException as e:
         raise e
@@ -297,6 +304,7 @@ async def get_posts(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.get("/post/get-my-contents", response_model=List[GetPostsResponse])
 async def get_my_posts(
@@ -317,9 +325,11 @@ async def get_my_posts(
         record = result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail=f"invalid user_node_id {user_node_id}")
+            raise HTTPException(
+                status_code=404, detail=f"invalid user_node_id {user_node_id}"
+            )
 
-        return [GetPostsResponse.from_data(dict(post)) for post in record['posts']]
+        return [GetPostsResponse.from_data(dict(post)) for post in record["posts"]]
 
     except HTTPException as e:
         raise e
@@ -327,6 +337,7 @@ async def get_my_posts(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.post("/post/modify-my-content", response_model=GetPostsResponse)
 async def modify_my_post(
@@ -378,10 +389,10 @@ async def modify_my_post(
         result = session.run(query)
         record = result.single()
 
-        if type(record['result']) == str :
-            raise HTTPException(status_code=404,detail=record['result'])
+        if type(record["result"]) == str:
+            raise HTTPException(status_code=404, detail=record["result"])
 
-        return GetPostsResponse.from_data(dict(record['result']))
+        return GetPostsResponse.from_data(dict(record["result"]))
 
     except HTTPException as e:
         raise e
@@ -389,6 +400,7 @@ async def modify_my_post(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.delete("/post/delete-my-content", response_model=DeleteMyPostResponse)
 async def delete_my_post(
@@ -420,16 +432,17 @@ async def delete_my_post(
         result = session.run(query)
         record = result.single()
 
-        if record['message']!='Sticker and relationship deleted':        
-            raise HTTPException(status_code=500, detail=record['message'])
-        
-        return DeleteStickerResponse(message=record['message'])
+        if record["message"] != "Sticker and relationship deleted":
+            raise HTTPException(status_code=500, detail=record["message"])
+
+        return DeleteStickerResponse(message=record["message"])
     except HTTPException as e:
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.post("/cast/send", response_model=SendCastResponse)
 async def send_cast(
@@ -460,7 +473,8 @@ async def send_cast(
 
         if not record:
             raise HTTPException(
-                status_code=404, detail=f"no such user {user_node_id} or no any valid friends"
+                status_code=404,
+                detail=f"no such user {user_node_id} or no any valid friends",
             )
 
         return SendCastResponse()
@@ -471,6 +485,7 @@ async def send_cast(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 async def delete_old_casts():
     session = get_session()
@@ -535,6 +550,7 @@ async def get_new_casts(
     finally:
         session.close()
 
+
 @router.get("/long_poll")
 async def long_poll(
     request: Request,
@@ -542,11 +558,10 @@ async def long_poll(
     token = request.cookies.get(access_token)
     user_node_id = verify_access_token(token)["user_node_id"]
 
- 
     for _ in range(3):
         new_contents = []
         session = get_session()
-        try:   
+        try:
             query = f"""
             MATCH (me: User {{node_id: '{user_node_id}'}})
             OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
@@ -557,19 +572,34 @@ async def long_poll(
             RETURN cast_node,creator
             """
 
+            ###########################################################################################
+            # 새로운 캐스트 찾는 쿼리 수정했음
+            query = f"""
+            MATCH (me: User {{node_id: '{user_node_id}'}})<-[:creator_of_cast]-(cast_node:Cast)
+            WHERE cast_node.deleted_at = ""
+            WITH cast_node, me
+            MATCH (cast_node)-[:receiver_of_cast {{new: TRUE}}]->(:User)
+
+            RETURN cast_node,me
+            """
+            ###########################################################################################
+
             result = session.run(query)
             records = result.data()
             print("records : ", records)
 
             if not records:
-               raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
+                raise HTTPException(
+                    status_code=500, detail=f"no such user {user_node_id}"
+                )
 
             new_contents = [
                 GetCastsResponse.from_data(record["cast_node"], record["creator"])
                 for record in records
-                if record.get("cast_node") is not None and record.get("creator") is not None
+                if record.get("cast_node") is not None
+                and record.get("creator") is not None
             ]
-            
+
             print("new_contents : ", new_contents)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
