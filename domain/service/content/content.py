@@ -572,18 +572,6 @@ async def long_poll(
             RETURN cast_node,creator
             """
 
-            ###########################################################################################
-            # 새로운 캐스트 찾는 쿼리 수정했음
-            query = f"""
-            MATCH (me: User {{node_id: '{user_node_id}'}})<-[:creator_of_cast]-(cast_node:Cast)
-            WHERE cast_node.deleted_at = ""
-            WITH cast_node, me
-            MATCH (cast_node)-[:receiver_of_cast {{new: TRUE}}]->(:User)
-
-            RETURN cast_node,me
-            """
-            ###########################################################################################
-
             result = session.run(query)
             records = result.data()
             print("records : ", records)
