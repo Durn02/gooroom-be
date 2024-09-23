@@ -574,7 +574,6 @@ async def long_poll(
 
             result = session.run(query)
             records = result.data()
-            print("records : ", records)
 
             if not records:
                 raise HTTPException(
@@ -588,13 +587,14 @@ async def long_poll(
                 and record.get("creator") is not None
             ]
 
-            print("new_contents : ", new_contents)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             session.close()
 
-        if new_contents:
-            return {"new_exists": True, "contents": new_contents}
+        if len(new_contents) > 0 :
+            return {"contents": new_contents}
         else:
             await asyncio.sleep(10)
+    
+    return {"contents": []}
