@@ -271,21 +271,6 @@ async def get_members(
     user_node_id = verify_access_token(token)["user_node_id"]
     try:
         query = f"""
-        MATCH (u:User {{node_id: '{user_node_id}'}})-[:is_roommate]->(roommate:User)
-        WITH u,collect(roommate) AS roommates
-        UNWIND roommates AS roommate
-        OPTIONAL MATCH (roommate)-[:is_roommate]->(neighbor:User)
-        WHERE NOT (u)-[:block]->(neighbor)
-        AND neighbor <> u
-        with u,roommate,roommates, collect(neighbor) AS neighbors
-        RETURN
-            u,
-            collect({{roommate:roommate,neighbors:neighbors}}) AS roommates_with_neighbors, 
-            roommates,
-            [n IN apoc.coll.toSet(apoc.coll.flatten(COLLECT(neighbors))) WHERE NOT n IN roommates] AS neighbors
-        """
-
-        query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})-[is_roommate_edge:is_roommate]->(roommate:User)
         WITH u, collect({{roommate: roommate, is_roommate_edge: properties(is_roommate_edge)}}) AS roommates
         UNWIND roommates AS roommate_info
@@ -296,7 +281,7 @@ async def get_members(
         WITH u, roommate, is_roommate_edge, roommates, collect(neighbor) AS neighbors
         RETURN
             u,
-            collect({{roommate:roommate, neighbors:neighbors}}) AS roommates_with_neighbors, 
+            collect({{roommate:roommate.node_id, neighbors:[n IN neighbors | n.node_id]}}) AS roommates_with_neighbors, 
             roommates,
             [n IN apoc.coll.toSet(apoc.coll.flatten(COLLECT(neighbors))) WHERE NOT n IN [r IN roommates | r.roommate]] AS neighbors
         """
