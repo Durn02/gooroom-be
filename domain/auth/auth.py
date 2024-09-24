@@ -183,7 +183,7 @@ async def signup(
         CREATE (u:User {{
                   username: '{signup_request.username}'
                 , nickname: '{signup_request.nickname}'
-                , concern: {signup_request.concern}
+                , tags: {signup_request.tags}
                 , my_memo: ''
                 , node_id: '{user_node_id}'}})
         CREATE (new_p)-[:is_info]->(u)
@@ -237,7 +237,7 @@ async def dummy_create(
         CREATE (p:PrivateData {{email: '{signup_request.email}', password: '{encrypted_password}', username: '{signup_request.username}',
                                link_info: '', verification_info: '', link_count: 0,
                                verification_count: 0, grant: 'user', node_id: '{private_node_id}'}})
-        CREATE (u:User {{username: '{signup_request.username}', nickname: '{signup_request.nickname}', concern: {signup_request.concern}, my_memo: '',node_id: '{user_node_id}'}})
+        CREATE (u:User {{username: '{signup_request.username}', nickname: '{signup_request.nickname}', tags: {signup_request.tags}, my_memo: '',node_id: '{user_node_id}'}})
         MERGE (p)-[:is_info]->(u)
         RETURN p, u
         """

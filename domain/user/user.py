@@ -70,7 +70,7 @@ async def my_info_change(
         SET u.my_memo = '{user_info.my_memo}',
             u.nickname = '{user_info.nickname}',
             u.username = '{user_info.username}',
-            u.concern = {user_info.concern}
+            u.tags = {user_info.tags}
         RETURN u
         """
         result = session.run(query)
