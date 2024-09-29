@@ -464,7 +464,7 @@ async def send_cast(
         UNWIND {send_cast_request.friends} AS friend_node_id
         MATCH (friend:User {{node_id: friend_node_id}})
         WHERE NOT (friend)-[:mute]->(me)
-        CREATE (friend)<-[:receiver_of_cast {{new:true, edge_id:randomUUID()}}]-(cast_node)
+        CREATE (friend)<-[:receiver_of_cast {{read:false, sent:false,edge_id:randomUUID()}}]-(cast_node)
         RETURN cast_node, collect(friend) AS friends
         """
 
@@ -510,11 +510,10 @@ async def delete_old_casts():
     finally:
         session.close()
 
-
-@router.get("/cast/get-contents", response_model=List[GetCastsResponse])
-async def get_new_casts(
-    request: Request,
-    session=Depends(get_session),
+@router.get("/cast/get-unread-members")
+async def get_unread_casts(
+    request:Request,
+    session = Depends(get_session)
 ):
     token = request.cookies.get(access_token)
     user_node_id = verify_access_token(token)["user_node_id"]
@@ -524,7 +523,7 @@ async def get_new_casts(
         MATCH (me: User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
         WHERE cast_node.deleted_at = ""
-        AND cast_edge.new
+        AND NOT cast_edge.read
         WITH cast_node
         OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
         RETURN cast_node,creator
@@ -534,22 +533,23 @@ async def get_new_casts(
         records = result.data()
 
         if not records:
-            raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
+            raise HTTPException(
+                status_code=500, detail=f"no such user {user_node_id}"
+            )
 
-        response = [
+        new_contents = [
             GetCastsResponse.from_data(record["cast_node"], record["creator"])
             for record in records
-            if record.get("cast_node") is not None and record.get("creator") is not None
+            if record.get("cast_node") is not None
+            and record.get("creator") is not None
         ]
-        return response
 
-    except HTTPException as e:
-        raise e
+        return {"contents": new_contents}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
-
 
 @router.get("/long_poll")
 async def long_poll(
@@ -566,7 +566,7 @@ async def long_poll(
             MATCH (me: User {{node_id: '{user_node_id}'}})
             OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
             WHERE cast_node.deleted_at = ""
-            AND cast_edge.new
+            AND NOT cast_edge.sent
             WITH cast_node
             OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
             RETURN cast_node,creator
@@ -596,5 +596,43 @@ async def long_poll(
             return {"contents": new_contents}
         else:
             await asyncio.sleep(10)
-    
     return {"contents": []}
+
+
+# @router.get("/cast/get-contents", response_model=List[GetCastsResponse])
+# async def get_new_casts(
+#     request: Request,
+#     session=Depends(get_session),
+# ):
+#     token = request.cookies.get(access_token)
+#     user_node_id = verify_access_token(token)["user_node_id"]
+
+#     try:
+#         query = f"""
+#         MATCH (me: User {{node_id: '{user_node_id}'}})
+#         OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
+#         WHERE cast_node.deleted_at = ""
+#         WITH cast_node
+#         OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
+#         RETURN cast_node,creator
+#         """
+
+#         result = session.run(query)
+#         records = result.data()
+
+#         if not records:
+#             raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
+
+#         response = [
+#             GetCastsResponse.from_data(record["cast_node"], record["creator"])
+#             for record in records
+#             if record.get("cast_node") is not None and record.get("creator") is not None
+#         ]
+#         return response
+
+#     except HTTPException as e:
+#         raise e
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+#     finally:
+#         session.close()
