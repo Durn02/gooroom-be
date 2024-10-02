@@ -61,7 +61,7 @@ CALL apoc.do.when(
     CREATE (u:User {
       username: data.username,
       nickname: data.nickname,
-      tag: ["string"],
+      tags: ["string"],
       my_memo: "",
       node_id: data.node_id
     })
