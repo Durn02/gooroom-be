@@ -1,1 +1,3 @@
 from .my_info_change_response import MyInfoChangeResponse
+from .my_groups_change_response import MyGroupsChangeResponse
+from .my_tags_change_response import MyTagsChangeResponse

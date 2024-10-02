@@ -239,8 +239,8 @@ async def accept_knock_by_link(
             WHERE NOT (from_user)-[:is_roommate]-(to_user)
             AND NOT (from_user)-[:block]-(to_user)
             AND NOT (to_user)-[:block]-(from_user)
-            CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(to_user)
-            CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ['']}}]->(from_user)
+            CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(to_user)
+            CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(from_user)
             RETURN 'Knock accepted successfully' AS message, expiration_time_str, expiration_time
             """
 

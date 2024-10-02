@@ -1,1 +1,3 @@
 from .my_info_change_request import MyInfoChangeRequest
+from .my_groups_change_request import MyGroupsChangeRequest
+from .my_tags_change_request import MyTagsChangeRequest

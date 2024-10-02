@@ -6,8 +6,8 @@ from config.connection import get_session
 from datetime import datetime, timedelta, timezone
 import uuid
 
-from .request import MyInfoChangeRequest
-from .response import MyInfoChangeResponse
+from .request import MyInfoChangeRequest, MyGroupsChangeRequest, MyTagsChangeRequest
+from .response import MyInfoChangeResponse, MyGroupsChangeResponse, MyTagsChangeResponse
 
 router = APIRouter()
 access_token = "access_token"
@@ -70,7 +70,84 @@ async def my_info_change(
         SET u.my_memo = '{user_info.my_memo}',
             u.nickname = '{user_info.nickname}',
             u.username = '{user_info.username}',
-            u.tags = {user_info.tags}
+        RETURN u
+        """
+        result = session.run(query)
+
+        record = result.single()
+
+        if not record:
+            raise HTTPException(
+                status_code=400, detail="User not found or failed to update"
+            )
+        else:
+            updated_user = record["u"]
+            return updated_user
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.put("/my/tags/change")
+async def my_tags_change(
+    request: Request,
+    user_tags_info: MyTagsChangeRequest,
+    session=Depends(get_session),
+):
+    logger.info("my_tags_change")
+    token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
+
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        MATCH (u:User {{node_id: '{user_node_id}'}})
+        SET u.tags = {user_tags_info.tags}
+        RETURN u
+        """
+        result = session.run(query)
+
+        record = result.single()
+
+        if not record:
+            raise HTTPException(
+                status_code=400, detail="User not found or failed to update"
+            )
+        else:
+            updated_user = record["u"]
+            return updated_user
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.put("/my/groups/change")
+async def my_groups_change(
+    request: Request,
+    user_groups_info: MyTagsChangeRequest,
+    session=Depends(get_session),
+):
+    logger.info("my_tags_change")
+    token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
+
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        MATCH (u:User {{node_id: '{user_node_id}'}})
+        SET u.groups = '{user_groups_info.groups}'
         RETURN u
         """
         result = session.run(query)
