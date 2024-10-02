@@ -1,13 +1,13 @@
 # backend/domain/service/friend/block/block.py
 from typing import List
+from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from utils import verify_access_token, Logger
 from config.connection import get_session
 from .request import MuteFriendRequest, PopMutedRequest
 from .response import MuteFriendResponse, GetMutedResponse, PopMutedResponse
-from fastapi import APIRouter, HTTPException, APIRouter, Depends, Body, Request
 
 router = APIRouter()
-access_token = "access_token"
+ACCESS_TOKEN = "access_token"
 
 logger = Logger(__file__)
 
@@ -19,7 +19,7 @@ async def mute_friend(
     mute_friend_request: MuteFriendRequest = Body(...),
 ):
     logger.info("mute_friend")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -54,7 +54,7 @@ async def get_muteed(
     session=Depends(get_session),
 ):
     logger.info("get_muted")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -86,7 +86,7 @@ async def pop_muted(
     pop_muted_request: PopMutedRequest = Body(...),
 ):
     logger.info("pop_muted")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:

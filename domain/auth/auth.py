@@ -15,8 +15,8 @@ from utils import (
     create_refresh_token,
     verify_access_token,
     verify_refresh_token,
-    Logger,
     send_email,
+    Logger,
 )
 from .request import (
     SignInRequest,
@@ -45,8 +45,8 @@ sys.path.append(
 )
 
 router = APIRouter()
-access_token = "access_token"
-refresh_token = "refresh_token"
+ACCESS_TOKEN = "access_token"
+REFRESH_TOKEN = "refresh_token"
 
 
 @router.post("/send-verification-code")
@@ -246,7 +246,7 @@ async def dummy_create(
         record = result.single()
 
         token = create_access_token(user_node_id)
-        response.set_cookie(key=access_token, value=f"{token}", httponly=True)
+        response.set_cookie(key=ACCESS_TOKEN, value=f"{token}", httponly=True)
         return SignUpResponse()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -257,7 +257,7 @@ async def dummy_create(
 @router.get("/verify-access-token")
 async def verify_access_token_api(request: Request, response: Response):
     logger.info("verify access token(api)")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
 
     if not token:
         raise HTTPException(status_code=401, detail="access token missing")
@@ -270,7 +270,7 @@ async def verify_access_token_api(request: Request, response: Response):
 @router.post("/refresh-acc-token")
 async def refresh_acc_token(request: Request, response: Response):
     logger.info("refresh access token")
-    token = request.cookies.get(refresh_token)
+    token = request.cookies.get(REFRESH_TOKEN)
 
     if not token:
         raise HTTPException(status_code=401, detail="refresh token missing")
@@ -282,7 +282,7 @@ async def refresh_acc_token(request: Request, response: Response):
     if not new_token:
         raise HTTPException(status_code=400, detail="failed to refresh access token")
 
-    response.set_cookie(key=access_token, value=f"{new_token}", httponly=True)
+    response.set_cookie(key=ACCESS_TOKEN, value=f"{new_token}", httponly=True)
     return RefreshAccTokenResponse()
 
 
@@ -317,10 +317,10 @@ async def signin(
 
         user_node_id = record["user_node_id"]
         token = create_access_token(user_node_id)
-        response.set_cookie(key=access_token, value=f"{token}", httponly=True)
+        response.set_cookie(key=ACCESS_TOKEN, value=f"{token}", httponly=True)
 
         token = create_refresh_token(user_node_id)
-        response.set_cookie(key=refresh_token, value=f"{token}", httponly=True)
+        response.set_cookie(key=REFRESH_TOKEN, value=f"{token}", httponly=True)
         return SignInResponse()
 
     except HTTPException as e:
@@ -334,7 +334,7 @@ async def signin(
 @router.post("/logout")
 async def logout(request: Request, response: Response):
     logger.info("logout")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
 
     if not token:
         raise HTTPException(status_code=401, detail="access token missing")
@@ -342,8 +342,8 @@ async def logout(request: Request, response: Response):
     verify_access_token(token)
 
     if token:
-        response.delete_cookie(key=access_token)
-        response.delete_cookie(key=refresh_token)
+        response.delete_cookie(key=ACCESS_TOKEN)
+        response.delete_cookie(key=REFRESH_TOKEN)
         return SignOutResponse(message="logout success")
     else:
         return SignOutResponse(message="not logined")
@@ -402,7 +402,7 @@ async def pw_change(
     pw_change_req: PwChangeRequest = Body(...),
 ):
     logger.info("pw change")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
 
     if not token:
         raise HTTPException(status_code=401, detail="Access token missing")
@@ -476,7 +476,7 @@ async def signout(
 ):
     logger.info("signout")
     try:
-        token = request.cookies.get(access_token)
+        token = request.cookies.get(ACCESS_TOKEN)
 
         if not token:
             raise HTTPException(status_code=401, detail="Access token missing")
@@ -495,8 +495,8 @@ async def signout(
         record = result.single()
 
         if record["message"] == "User deleted successfully":
-            response.delete_cookie(key=access_token)
-            response.delete_cookie(key=refresh_token)
+            response.delete_cookie(key=ACCESS_TOKEN)
+            response.delete_cookie(key=REFRESH_TOKEN)
             return SignOutResponse()
         else:
             raise HTTPException(status_code=500, detail="Failed to sign out")

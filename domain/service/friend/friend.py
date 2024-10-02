@@ -1,4 +1,6 @@
 # backend/domain/service/friend/friend.py
+from datetime import datetime, timedelta
+import uuid
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
 from utils import verify_access_token, Logger
 from config.connection import get_session
@@ -23,11 +25,10 @@ from .response import (
     RejectKnockResponse,
     ModifyGroupResponse,
 )
-from datetime import datetime, timedelta, timezone
-import uuid
 
+
+ACCESS_TOKEN = "access_token"
 router = APIRouter()
-access_token = "access_token"
 logger = Logger(__file__)
 
 
@@ -38,7 +39,7 @@ async def send_knock(
     send_knock_request: SendKnockRequest = Body(...),
 ):
     logger.info("send_knock")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     from_user_node_id = verify_access_token(token)["user_node_id"]
     to_user_node_id = send_knock_request.to_user_node_id
     knock_edge_id = str(uuid.uuid4())
@@ -64,7 +65,7 @@ async def send_knock(
         if not record:
             raise HTTPException(
                 status_code=404,
-                detail=f"Cannot send.",
+                detail="Cannot send.",
             )
 
         return SendKnockResponse()
@@ -83,7 +84,7 @@ async def list_knock(
     session=Depends(get_session),
 ):
     logger.info("list_knock")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     try:
         query = f"""
@@ -115,7 +116,7 @@ async def reject_knock(
     reject_knock_request: RejectKnockRequest = Body(...),
 ):
     logger.info("reject_knock")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -144,7 +145,7 @@ async def accept_knock(
     accept_knock_request: AcceptKnockRequest = Body(...),
 ):
     logger.info("accept_knock")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -185,7 +186,7 @@ async def create_knock_by_link(
     session=Depends(get_session),
 ):
     logger.info("create_knock_by_link")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     link_code = str(uuid.uuid4())
@@ -223,7 +224,7 @@ async def accept_knock_by_link(
     session=Depends(get_session),
 ):
     logger.info("accept_knock_by_link")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -267,7 +268,7 @@ async def get_members(
     session=Depends(get_session),
 ):
     logger.info("get_members")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     try:
         query = f"""
@@ -306,7 +307,7 @@ async def get_member(
     get_friend_request: GetFriendRequest = Body(...),
 ):
     logger.info("get_member")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -359,7 +360,7 @@ async def delete_member(
     delete_friend_request: DeleteFriendRequest = Body(...),
 ):
     logger.info("delete_member")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     try:
         query = f"""
@@ -397,7 +398,7 @@ async def get_memo(
     get_memo_request: GetMemoRequest = Body(...),
 ):
     logger.info("get_memo")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -437,7 +438,7 @@ async def modify_memo(
     modify_memo_request: ModifyMemoRequest = Body(...),
 ):
     logger.info("modify_memo")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -474,7 +475,7 @@ async def modify_group(
     modify_group_request: ModifyGroupRequest = Body(...),
 ):
     logger.info("modify_group")
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:

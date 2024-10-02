@@ -1,19 +1,18 @@
 # backend/domain/admin/admin.py
-import asyncio
 from fastapi import HTTPException, APIRouter, Depends, Body, Request, Response
 from utils import (
     verify_access_token,
     Logger,
 )
+from config.connection import get_session
 from .response import DeleteUserResponse
 from .request import DeleteUserRequest
-from config.connection import get_session
 
 logger = Logger(__file__)
 
 router = APIRouter()
 
-access_token = "access_token"
+ACCESS_TOKEN = "access_token"
 
 
 @router.post("/admin/user/delete")
@@ -25,7 +24,7 @@ async def delete_user(
 ):
     logger.info("admin delete user")
 
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(ACCESS_TOKEN)
     if not token:
         raise HTTPException(status_code=401, detail="Access token is missing")
 
