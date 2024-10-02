@@ -1,16 +1,13 @@
 # backend/domain/user/user.py
-from fastapi import APIRouter
-from fastapi import HTTPException, APIRouter, Depends, Body, Request
+from fastapi import HTTPException, APIRouter, Depends, Request
 from utils import verify_access_token, Logger
 from config.connection import get_session
-from datetime import datetime, timedelta, timezone
-import uuid
 
 from .request import MyInfoChangeRequest, MyGroupsChangeRequest, MyTagsChangeRequest
 from .response import MyInfoChangeResponse, MyGroupsChangeResponse, MyTagsChangeResponse
 
+ACCESS_TOKEN = "access_token"
 router = APIRouter()
-access_token = "access_token"
 logger = Logger(__file__)
 
 router = APIRouter()
@@ -22,7 +19,7 @@ async def my_info(
     session=Depends(get_session),
 ):
     logger.info("my_info")
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(ACCESS_TOKEN)
 
     if not token:
         raise HTTPException(status_code=401, detail="Access token is missing")
@@ -57,7 +54,7 @@ async def my_info_change(
     session=Depends(get_session),
 ):
     logger.info("my_info_change")
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(ACCESS_TOKEN)
 
     if not token:
         raise HTTPException(status_code=401, detail="Access token is missing")

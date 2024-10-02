@@ -21,7 +21,7 @@ class Post(BaseModel):
     content:str
     image_url:List[str]
     created_at:str
-    tag:List[str]
+    tags:List[str]
     title:str
 
     @classmethod
@@ -31,7 +31,7 @@ class Post(BaseModel):
             content=post.get("content", ''),
             image_url=post.get("image_url", []),
             created_at=post.get("created_at",''),
-            tag=post.get("tag",[]),
+            tags=post.get("tags",[]),
             title=post.get("title","")
         )
     

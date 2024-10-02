@@ -1,6 +1,7 @@
+from fastapi import APIRouter, HTTPException, Depends
+from domain.service.content.content import delete_old_casts
 from utils import Logger
 from config.connection import get_session
-from fastapi import APIRouter, HTTPException, Depends
 from .dummy import (
     CREATE_DUMMY_NODES_QUERY,
     CREATE_DUMMY_EDGES_QUERY,
@@ -65,3 +66,12 @@ async def dummy_delete(session=Depends(get_session)):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
+
+@router.delete("/delete_old_casts")
+async def delete_old_casts_api():
+    try:
+        delete_old_casts()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
