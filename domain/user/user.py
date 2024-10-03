@@ -66,7 +66,7 @@ async def my_info_change(
         MATCH (u:User {{node_id: '{user_node_id}'}})
         SET u.my_memo = '{user_info.my_memo}',
             u.nickname = '{user_info.nickname}',
-            u.username = '{user_info.username}',
+            u.username = '{user_info.username}'
         RETURN u
         """
         result = session.run(query)
