@@ -19,6 +19,7 @@ from .response import (
     SendKnockResponse,
     AcceptKnockResponse,
     GetFriendResponse,
+    GetNeighborResponse,
     DeleteFriendResponse,
     GetMemoResponse,
     ModifyMemoResponse,
@@ -341,6 +342,56 @@ async def get_member(
         return GetFriendResponse.from_data(
             dict(record["friend"]),
             dict(record["roommate_edge"]),
+            record["stickers"],
+            record["posts"],
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
+@router.post("/get-neighbor", response_model=GetNeighborResponse)
+async def get_neighbor(
+    request: Request,
+    session=Depends(get_session),
+    get_friend_request: GetFriendRequest = Body(...),
+):
+    logger.info("get_neighbor")
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        OPTIONAL MATCH (friend:User {{node_id: '{get_friend_request.user_node_id}'}})
+        OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
+        OPTIONAL MATCH (friend)<-[b:block]->(me)
+        OPTIONAL MATCH (friend)<-[:is_sticker]-(sticker:Sticker)
+        WITH friend, b, collect(sticker) AS stickers
+        OPTIONAL MATCH (friend)<-[:is_post]-(post:Post)
+        WITH friend, b, stickers, collect(post) AS posts
+        WITH friend, b, stickers,posts
+        RETURN 
+        CASE 
+            WHEN friend IS NULL THEN "no such node {get_friend_request.user_node_id}"
+            WHEN b IS NOT NULL THEN "block exists"
+            ELSE "welcome my friend"
+        END AS message,
+        friend, stickers, posts
+        """
+        result = session.run(query)
+        record = result.single()
+
+        if record["message"] != "welcome my friend":
+            raise HTTPException(status_code=404, detail=record["message"])
+
+        # return record
+
+        return GetNeighborResponse.from_data(
+            dict(record["friend"]),
             record["stickers"],
             record["posts"],
         )
