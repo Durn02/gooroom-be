@@ -38,6 +38,7 @@ async def create_sticker(
     session=Depends(get_session),
     create_sticker_request: CreateStickerRequest = Body(...),
 ):
+    logger.info("create_sticker")
     token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
