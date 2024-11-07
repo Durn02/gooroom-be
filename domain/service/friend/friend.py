@@ -55,8 +55,7 @@ async def send_knock(
         OPTIONAL MATCH (from_user)-[k:knock]->(to_user)
         WITH from_user, to_user, k
         WHERE k IS NULL AND NOT (from_user)-[:block]-(to_user) AND NOT (to_user)-[:block]-(from_user)
-        CREATE (from_user)-[nk:knock]->(to_user)
-        SET nk.edge_id = '{knock_edge_id}'
+        CREATE (from_user)-[nk:knock {{edge_id:randomUUID()}}]->(to_user)
         RETURN "knock created" AS message, nk.edge_id AS knock_edge_id
         """
 
@@ -138,7 +137,8 @@ async def reject_knock(
         session.close()
 
 
-@router.post("/knock/accept", response_model=AcceptKnockResponse)
+# @router.post("/knock/accept", response_model=AcceptKnockResponse)
+@router.post("/knock/accept")
 async def accept_knock(
     request: Request,
     session=Depends(get_session),
@@ -162,15 +162,18 @@ async def accept_knock(
         CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(to_user)
         CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(from_user)
         DELETE k1, k2
-        RETURN "Roommate relationship created" AS message
+        WITH from_user,to_user
+        OPTIONAL MATCH (from_user)-[:is_roommate]->(new_neighbor:User)
+        WHERE new_neighbor <> to_user
+        RETURN from_user AS new_roommate,collect(new_neighbor) AS new_neighbors
         """
 
         result = session.run(query)
         record = result.single()
         if not record:
-            raise HTTPException(status_code=400, detail="no such knock_edge")
+            raise HTTPException(status_code=400, detail="no such knock_edge or already other relations(another knock,is_roommate) exist")
 
-        return AcceptKnockResponse(message=record["message"])
+        return AcceptKnockResponse.from_data(record["new_roommate"],record["new_neighbors"])
 
     except HTTPException as e:
         raise e
