@@ -29,7 +29,7 @@ from .response import (
 
 logger = Logger(__file__)
 router = APIRouter()
-access_token = "access_token"
+ACCESS_TOKEN = "access_token"
 
 
 @router.post("/sticker/create", response_model=CreateStickerResponse)
@@ -38,7 +38,8 @@ async def create_sticker(
     session=Depends(get_session),
     create_sticker_request: CreateStickerRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    logger.info("create_sticker")
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -79,7 +80,7 @@ async def get_stickers(
     session=Depends(get_session),
     get_sticker_request: GetStickersRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -123,7 +124,7 @@ async def get_stickers(
 
 @router.get("/sticker/get-my-contents", response_model=List[GetMyStickersResponse])
 async def get_my_stickers(request: Request, session=Depends(get_session)):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -159,7 +160,7 @@ async def delete_sticker(
     session=Depends(get_session),
     delete_sticker_request: DeleteStickerRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -226,7 +227,7 @@ async def create_post(
     session=Depends(get_session),
     create_post_request: CreatePostRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -268,7 +269,7 @@ async def get_posts(
     session=Depends(get_session),
     get_post_request: GetPostsRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -311,7 +312,7 @@ async def get_my_posts(
     request: Request,
     session=Depends(get_session),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -345,7 +346,7 @@ async def modify_my_post(
     session=Depends(get_session),
     modify_my_post_request: ModifyMyPostRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     post_node_id = modify_my_post_request.post_node_id
     new_content = modify_my_post_request.new_content
@@ -408,7 +409,7 @@ async def delete_my_post(
     session=Depends(get_session),
     delete_my_post_request: DeleteMyPostRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -450,7 +451,7 @@ async def send_cast(
     session=Depends(get_session),
     send_cast_request: SendCastRequest = Body(...),
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -515,7 +516,7 @@ async def get_unread_casts(
     request:Request,
     session = Depends(get_session)
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
@@ -556,7 +557,7 @@ async def get_unread_casts(
 async def get_unsent_members(
     request: Request,
 ):
-    token = request.cookies.get(access_token)
+    token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
     for _ in range(3):
@@ -594,47 +595,8 @@ async def get_unsent_members(
         finally:
             session.close()
 
-        if len(new_contents) > 0 :
+        if len(new_contents) > 0:
             return {"contents": new_contents}
         else:
             await asyncio.sleep(10)
     return {"contents": []}
-
-
-# @router.get("/cast/get-contents", response_model=List[GetCastsResponse])
-# async def get_new_casts(
-#     request: Request,
-#     session=Depends(get_session),
-# ):
-#     token = request.cookies.get(access_token)
-#     user_node_id = verify_access_token(token)["user_node_id"]
-
-#     try:
-#         query = f"""
-#         MATCH (me: User {{node_id: '{user_node_id}'}})
-#         OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
-#         WHERE cast_node.deleted_at = ""
-#         WITH cast_node
-#         OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
-#         RETURN cast_node,creator
-#         """
-
-#         result = session.run(query)
-#         records = result.data()
-
-#         if not records:
-#             raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
-
-#         response = [
-#             GetCastsResponse.from_data(record["cast_node"], record["creator"])
-#             for record in records
-#             if record.get("cast_node") is not None and record.get("creator") is not None
-#         ]
-#         return response
-
-#     except HTTPException as e:
-#         raise e
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-#     finally:
-#         session.close()

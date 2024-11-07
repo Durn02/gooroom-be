@@ -38,7 +38,11 @@ UNWIND [
   },
   {
     email: 'test13@gooroom.com', password: '$2b$12$fzsINBjqjhfYsjBfo8NsluOtEAEhLOewll2AnuuBlqAcqsETXyDue', username: 'test13', nickname: 'young_tiger', node_id: randomUUID(), pd_node_id: randomUUID()
+  },
+  {
+    email: 'test14@gooroom.com', password: '$2b$12$fzsINBjqjhfYsjBfo8NsluOtEAEhLOewll2AnuuBlqAcqsETXyDue', username: 'test14', nickname: 'neighbor_mutant', node_id: randomUUID(), pd_node_id: randomUUID()
   }
+
 ] AS data
 
 OPTIONAL MATCH (existingUser:User {username: data.username})
@@ -61,7 +65,7 @@ CALL apoc.do.when(
     CREATE (u:User {
       username: data.username,
       nickname: data.nickname,
-      tag: ["string"],
+      tags: ["string"],
       my_memo: "",
       node_id: data.node_id
     })
@@ -88,6 +92,7 @@ MATCH (u10:User {nickname: 'grem1in'})
 MATCH (u11:User {nickname: 'ku-ec2-user'})
 MATCH (u12:User {nickname: 'goo1'})
 MATCH (u13:User {nickname: 'young_tiger'})
+MATCH (u14:User {nickname: 'neighbor_mutant'})
 
 
 MERGE (u1)-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]->(u2)
@@ -122,6 +127,9 @@ MERGE (u6)<-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]-(u10)
 MERGE (u8)<-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]-(u10)
 MERGE (u11)<-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]-(u12)
 MERGE (u9)<-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]-(u13)
+
+MERGE (u7)-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]->(u14)
+MERGE (u14)-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]->(u7)
 
 RETURN "Success"
 ;

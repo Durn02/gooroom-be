@@ -90,7 +90,6 @@ async def send_verification_code(
         if update_record["message"] != "verification code sent":
             raise HTTPException(status_code=400, detail="Error occurred")
 
-        # 이메일로 verification code 전송
         send_email(
             send_verification_code_request.email,
             f"Your verification code: '{verification_code}'",
@@ -185,7 +184,9 @@ async def signup(
                 , nickname: '{signup_request.nickname}'
                 , tags: {signup_request.tags}
                 , my_memo: ''
-                , node_id: '{user_node_id}'}})
+                , node_id: '{user_node_id}'
+                , groups: "{{ default: '#808080'}}"
+                }})
         CREATE (new_p)-[:is_info]->(u)
         RETURN p,new_p,u
         """
