@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 import uuid
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
-from utils import verify_access_token, Logger
+from utils import verify_access_token, Logger, dispatcher
 from config.connection import get_session
 from .request import (
     SendKnockRequest,
@@ -165,7 +165,7 @@ async def accept_knock(
         WITH from_user,to_user
         OPTIONAL MATCH (from_user)-[:is_roommate]->(new_neighbor:User)
         WHERE new_neighbor <> to_user
-        RETURN from_user AS new_roommate,collect(new_neighbor) AS new_neighbors
+        RETURN from_user AS new_roommate, to_user AS me ,collect(new_neighbor) AS new_neighbors
         """
 
         result = session.run(query)
@@ -173,6 +173,9 @@ async def accept_knock(
         if not record:
             raise HTTPException(status_code=400, detail="no such knock_edge or already other relations(another knock,is_roommate) exist")
 
+        knock_creator = record["new_roommate"].get("node_id",'')
+        knock_receiver = record["me"].get("node_id",'')
+        dispatcher.dispatch(dispatcher.KNOCK_ACCEPTED,knock_creator,knock_receiver)
         return AcceptKnockResponse.from_data(record["new_roommate"],record["new_neighbors"])
 
     except HTTPException as e:
