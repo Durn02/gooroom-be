@@ -524,6 +524,7 @@ async def get_unread_casts(
         OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
         WHERE cast_node.deleted_at = ""
         AND NOT cast_edge.read
+        SET cast_edge.sent = true
         WITH cast_node
         OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
         RETURN cast_node,creator
@@ -551,8 +552,8 @@ async def get_unread_casts(
     finally:
         session.close()
 
-@router.get("/long_poll")
-async def long_poll(
+@router.get("/cast/get-unsent-members")
+async def get_unsent_members(
     request: Request,
 ):
     token = request.cookies.get(access_token)
@@ -567,6 +568,7 @@ async def long_poll(
             OPTIONAL MATCH (me)<-[cast_edge:receiver_of_cast]-(cast_node:Cast)
             WHERE cast_node.deleted_at = ""
             AND NOT cast_edge.sent
+            SET cast_edge.sent = true
             WITH cast_node
             OPTIONAL MATCH (cast_node)-[:creator_of_cast]->(creator:User)
             RETURN cast_node,creator
