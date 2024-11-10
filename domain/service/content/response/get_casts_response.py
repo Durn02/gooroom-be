@@ -7,6 +7,7 @@ class CastNode(BaseModel):
     message: str
     deleted_at: str
     node_id: str
+    type:str
 
 class Creator(BaseModel):
     my_memo: str
@@ -27,7 +28,8 @@ class GetCastsResponse(BaseModel):
                 created_at=cast.get("created_at", ''),
                 message=cast.get("message", ''),
                 deleted_at=cast.get("deleted_at", ''),
-                node_id=cast.get("node_id", '')
+                node_id=cast.get("node_id", ''),
+                type=cast.get("type",'')
             ),
             creator=Creator(
                 my_memo=creator.get("my_memo", ''),

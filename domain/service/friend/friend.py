@@ -13,6 +13,7 @@ from .request import (
     GetMemoRequest,
     ModifyMemoRequest,
     ModifyGroupRequest,
+    GetRoommateRequest
 )
 from .response import (
     ListKnockResponse,
@@ -24,6 +25,7 @@ from .response import (
     ModifyMemoResponse,
     RejectKnockResponse,
     ModifyGroupResponse,
+    GetRoommateResponse
 )
 
 
@@ -354,6 +356,54 @@ async def get_member(
     finally:
         session.close()
 
+@router.post("/get-roommate")
+async def get_roommate(
+    request: Request,
+    session=Depends(get_session),
+    get_roommate_request: GetRoommateRequest = Body(...),
+):
+    logger.info("get_roommate")
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        OPTIONAL MATCH (u:User {{node_id: '{user_node_id}'}})
+        WITH u
+        CALL {{
+            WITH u
+            OPTIONAL MATCH (u)-[is_roommate_edge:is_roommate]->(roommate:User {{node_id: '{get_roommate_request.user_node_id}'}})
+            OPTIONAL MATCH (roommate)-[:is_roommate]->(neighbor:User)
+            WHERE roommate IS NOT NULL AND neighbor <> u
+            RETURN roommate, is_roommate_edge,collect(neighbor) AS neighbors
+        }}
+        WITH u, roommate, neighbors,
+            CASE 
+                WHEN u IS NULL THEN 'User node not found'
+                WHEN is_roommate_edge IS NULL THEN 'No roommate relationship exists'
+                WHEN roommate IS NULL THEN 'Roommate not found'
+            ELSE 'query successes'
+        END AS message
+        RETURN roommate, neighbors, message
+        """
+
+        result = session.run(query)
+        record = result.single()
+
+        if record["message"] != "query successes":
+            raise HTTPException(
+                status_code=404,
+                detail=record["message"]
+            )
+
+        return GetRoommateResponse.from_data(record["roommate"],record["neighbors"])
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
 
 @router.delete("/delete-member", response_model=DeleteFriendResponse)
 async def delete_member(
