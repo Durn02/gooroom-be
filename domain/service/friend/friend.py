@@ -281,12 +281,23 @@ async def get_members(
         AND neighbor <> u
         WITH u, roommate, is_roommate_edge, roommates, collect(neighbor) AS neighbors
         RETURN
-            u,
+            u as u,
             collect({{roommate:roommate.node_id, neighbors:[n IN neighbors | n.node_id]}}) AS roommates_with_neighbors, 
-            roommates,
+            roommates as roommates,
             [n IN apoc.coll.toSet(apoc.coll.flatten(COLLECT(neighbors))) WHERE NOT n IN [r IN roommates | r.roommate]] AS neighbors
         """
-
+        # MATCH (me:User {{node_id: '{user_node_id}'}})-[r1:is_roommate]->(roommate:User)
+        # WITH me, r1, roommate
+        # OPTIONAL MATCH (roommate)-[r2:is_roommate]->(neighbor:User)
+        # WHERE
+        # neighbor <> me
+        # AND (NOT (me)-[:is_roommate]->(neighbor))
+        # RETURN
+        # me,
+        # COLLECT(DISTINCT roommate) AS pure_roommates,
+        # COLLECT(DISTINCT neighbor) AS pure_neighbors,
+        # COLLECT(DISTINCT r1) AS r1,
+        # COLLECT(DISTINCT r2) AS r2
         result = session.run(query)
         record = result.data()
 
