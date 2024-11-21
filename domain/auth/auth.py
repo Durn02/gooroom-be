@@ -187,7 +187,11 @@ async def signup(
                 , node_id: '{user_node_id}'
                 , groups: "{{ default: '#808080'}}"
                 }})
+        CREATE (alert:Alert {{
+                node_id:'randomUUID()'
+                }})
         CREATE (new_p)-[:is_info]->(u)
+        CREATE (alert)=[:is_alert]->(u)
         RETURN p,new_p,u
         """
         result = session.run(query)
