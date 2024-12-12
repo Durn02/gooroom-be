@@ -511,11 +511,9 @@ async def delete_old_casts():
     finally:
         session.close()
 
+
 @router.get("/cast/get-unread-members")
-async def get_unread_casts(
-    request:Request,
-    session = Depends(get_session)
-):
+async def get_unread_casts(request: Request, session=Depends(get_session)):
     token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
@@ -535,15 +533,12 @@ async def get_unread_casts(
         records = result.data()
 
         if not records:
-            raise HTTPException(
-                status_code=500, detail=f"no such user {user_node_id}"
-            )
+            raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
 
         new_contents = [
             GetCastsResponse.from_data(record["cast_node"], record["creator"])
             for record in records
-            if record.get("cast_node") is not None
-            and record.get("creator") is not None
+            if record.get("cast_node") is not None and record.get("creator") is not None
         ]
 
         return {"contents": new_contents}
@@ -552,6 +547,7 @@ async def get_unread_casts(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.get("/cast/get-unsent-members")
 async def get_unsent_members(
