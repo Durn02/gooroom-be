@@ -177,7 +177,7 @@ async def delete_sticker(
             s IS NULL, 'RETURN "Sticker does not exist" AS message',
             r IS NULL, 'RETURN "Relationship does not exist" AS message'
         ],
-        'SET s.delete_at = "{datetimenow}"  RETURN "Sticker and relationship deleted" AS message',
+        'SET s.deleted_at = "{datetimenow}"  RETURN "Sticker and relationship deleted" AS message',
         {{s: s}}
         ) YIELD value
         RETURN value.message AS message
