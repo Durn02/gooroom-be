@@ -239,7 +239,7 @@ async def create_post(
                 image_url : {create_post_request.image_url},
                 is_public : {create_post_request.is_public},
                 title : '{create_post_request.title}',
-                tag : {create_post_request.tag},
+                tags : {create_post_request.tags},
                 created_at : '{datetimenow}',
                 node_id : randomUUID()
             }})
