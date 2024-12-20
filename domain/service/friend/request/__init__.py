@@ -6,3 +6,4 @@ from .delete_friend_request import DeleteFriendRequest
 from .get_memo_request import GetMemoRequest
 from .modify_memo_request import ModifyMemoRequest
 from .modify_group_request import ModifyGroupRequest
+from .get_roommate_request import GetRoommateRequest

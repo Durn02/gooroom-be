@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 import uuid
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
-from utils import verify_access_token, Logger
+from utils import verify_access_token, Logger, dispatcher
 from config.connection import get_session
 from .request import (
     SendKnockRequest,
@@ -13,6 +13,7 @@ from .request import (
     GetMemoRequest,
     ModifyMemoRequest,
     ModifyGroupRequest,
+    GetRoommateRequest
 )
 from .response import (
     ListKnockResponse,
@@ -24,6 +25,7 @@ from .response import (
     ModifyMemoResponse,
     RejectKnockResponse,
     ModifyGroupResponse,
+    GetRoommateResponse
 )
 
 
@@ -55,8 +57,7 @@ async def send_knock(
         OPTIONAL MATCH (from_user)-[k:knock]->(to_user)
         WITH from_user, to_user, k
         WHERE k IS NULL AND NOT (from_user)-[:block]-(to_user) AND NOT (to_user)-[:block]-(from_user)
-        CREATE (from_user)-[nk:knock]->(to_user)
-        SET nk.edge_id = '{knock_edge_id}'
+        CREATE (from_user)-[nk:knock {{edge_id:randomUUID()}}]->(to_user)
         RETURN "knock created" AS message, nk.edge_id AS knock_edge_id
         """
 
@@ -138,7 +139,8 @@ async def reject_knock(
         session.close()
 
 
-@router.post("/knock/accept", response_model=AcceptKnockResponse)
+# @router.post("/knock/accept", response_model=AcceptKnockResponse)
+@router.post("/knock/accept")
 async def accept_knock(
     request: Request,
     session=Depends(get_session),
@@ -162,15 +164,21 @@ async def accept_knock(
         CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(to_user)
         CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(from_user)
         DELETE k1, k2
-        RETURN "Roommate relationship created" AS message
+        WITH from_user,to_user
+        OPTIONAL MATCH (from_user)-[:is_roommate]->(new_neighbor:User)
+        WHERE new_neighbor <> to_user
+        RETURN from_user AS new_roommate, to_user AS me ,collect(new_neighbor) AS new_neighbors
         """
 
         result = session.run(query)
         record = result.single()
         if not record:
-            raise HTTPException(status_code=400, detail="no such knock_edge")
+            raise HTTPException(status_code=400, detail="no such knock_edge or already other relations(another knock,is_roommate) exist")
 
-        return AcceptKnockResponse(message=record["message"])
+        knock_creator = record["new_roommate"].get("node_id",'')
+        knock_receiver = record["me"].get("node_id",'')
+        dispatcher.dispatch(dispatcher.KNOCK_ACCEPTED,knock_creator,knock_receiver)
+        return AcceptKnockResponse.from_data(record["new_roommate"],record["new_neighbors"])
 
     except HTTPException as e:
         raise e
@@ -372,6 +380,54 @@ async def get_member(
     finally:
         session.close()
 
+@router.post("/get-roommate")
+async def get_roommate(
+    request: Request,
+    session=Depends(get_session),
+    get_roommate_request: GetRoommateRequest = Body(...),
+):
+    logger.info("get_roommate")
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        OPTIONAL MATCH (u:User {{node_id: '{user_node_id}'}})
+        WITH u
+        CALL {{
+            WITH u
+            OPTIONAL MATCH (u)-[is_roommate_edge:is_roommate]->(roommate:User {{node_id: '{get_roommate_request.user_node_id}'}})
+            OPTIONAL MATCH (roommate)-[:is_roommate]->(neighbor:User)
+            WHERE roommate IS NOT NULL AND neighbor <> u
+            RETURN roommate, is_roommate_edge,collect(neighbor) AS neighbors
+        }}
+        WITH u, roommate, neighbors,
+            CASE 
+                WHEN u IS NULL THEN 'User node not found'
+                WHEN is_roommate_edge IS NULL THEN 'No roommate relationship exists'
+                WHEN roommate IS NULL THEN 'Roommate not found'
+            ELSE 'query successes'
+        END AS message
+        RETURN roommate, neighbors, message
+        """
+
+        result = session.run(query)
+        record = result.single()
+
+        if record["message"] != "query successes":
+            raise HTTPException(
+                status_code=404,
+                detail=record["message"]
+            )
+
+        return GetRoommateResponse.from_data(record["roommate"],record["neighbors"])
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
 
 @router.delete("/delete-member", response_model=DeleteFriendResponse)
 async def delete_member(

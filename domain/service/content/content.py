@@ -457,7 +457,7 @@ async def send_cast(
 
     try:
         query = f"""
-        CREATE (cast_node:Cast {{node_id:randomUUID(),message:'{send_cast_request.message}',created_at:'{datetimenow}',duration:{send_cast_request.duration},deleted_at:''}})
+        CREATE (cast_node:Cast {{node_id:randomUUID(),message:'{send_cast_request.message}',created_at:'{datetimenow}',duration:{send_cast_request.duration},deleted_at:'',type:'message'}})
         WITH cast_node
         MATCH (me:User {{node_id: '{user_node_id}'}})
         CREATE (me)<-[:creator_of_cast {{edge_id:randomUUID()}}]-(cast_node)
@@ -487,6 +487,40 @@ async def send_cast(
     finally:
         session.close()
 
+async def send_knock_accepted_cast(knock_creator:str,knock_receiver:str):
+    session = get_session()
+    datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    message = 'hello, new roommate!'
+
+    print("send_knock_accepted_cast called")
+    try:
+        query = f"""
+        CREATE (cast_node:Cast {{node_id:randomUUID(),message:'{message}',created_at:'{datetimenow}',duration:{0.25},deleted_at:'',type:'knock_accepted'}})
+        WITH cast_node
+        MATCH (me:User {{node_id: '{knock_receiver}'}})
+        CREATE (me)<-[:creator_of_cast {{edge_id:randomUUID()}}]-(cast_node)
+        WITH cast_node,me
+        MATCH (friend:User {{node_id: '{knock_creator}'}})
+        WHERE NOT (friend)-[:mute]->(me)
+        CREATE (friend)<-[:receiver_of_cast {{read:false, sent:false,edge_id:randomUUID()}}]-(cast_node)
+        RETURN cast_node, friend
+        """
+
+        result = session.run(query)
+        record = result.single()
+
+        if not record:
+            raise HTTPException(
+                status_code=404,
+                detail=f"invalid knock_receiver or knock_creator",
+            )
+        
+        logger.info(f"send_knock_accepted_cast : {record}")
+
+    except Exception as e:
+        raise e
+    finally:
+        session.close()
 
 async def delete_old_casts():
     session = get_session()

@@ -7,6 +7,7 @@ from .jwt_utils import (
 )
 from .logger import Logger
 from .send_email import send_email
+from .event_dispatcher import dispatcher
 
 __all__ = [
     "verify_password",
@@ -17,4 +18,5 @@ __all__ = [
     "create_refresh_token",
     "Logger",
     "send_email",
+    "dispatcher",
 ]
