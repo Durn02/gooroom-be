@@ -131,7 +131,7 @@ async def get_my_stickers(request: Request, session=Depends(get_session)):
         query = f"""
         MATCH (me: User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (me)<-[:is_sticker]-(sticker:Sticker)
-        WHERE sticker.delete_at IS NULL 
+        WHERE sticker.deleted_at = "" 
         RETURN collect(sticker) AS stickers
         """
 
