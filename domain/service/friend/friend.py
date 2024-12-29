@@ -340,7 +340,7 @@ async def get_member(
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (friend)<-[b:block]->(me)
         OPTIONAL MATCH (me)-[r:is_roommate]->(friend)
-        OPTIONAL MATCH (friend)<-[:is_sticker]-(sticker:Sticker)
+        OPTIONAL MATCH (friend)<-[:is_sticker]-(sticker:Sticker) WHERE sticker.deleted_at = ""
         OPTIONAL MATCH (friend)<-[:is_post]-(post:Post)
         WITH friend, b, r, collect(sticker) AS stickers, collect(post) AS posts
         RETURN
