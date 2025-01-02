@@ -1,4 +1,4 @@
-CREATE_DUMMY_NODES_QUERY = """
+CREATE_TEN_DUMMY_NODES_QUERY = """
 UNWIND [
   {
     email: 'test1@gooroom.com', password: '$2b$12$K4kuDTzku5n.xyXYd45lUODLIZH5FGHY7upzFAGie20nQkG8iTibS', username: 'test1', nickname: 'dudu02', node_id: randomUUID(), pd_node_id: randomUUID()
@@ -78,7 +78,7 @@ RETURN value.message
 """
 
 
-CREATE_DUMMY_EDGES_QUERY = """
+CREATE_TEN_DUMMY_EDGES_QUERY = """
 MATCH (u1:User {nickname: 'dudu02'})
 MATCH (u2:User {nickname: 'kong123'})
 MATCH (u3:User {nickname: 'cdh07'})
@@ -142,4 +142,48 @@ WHERE U.username CONTAINS "test"
 DETACH DELETE p
 RETURN "Success"
 ;
+"""
+
+
+CREATE_SEVERAL_DUMMY = """
+WITH $number_of_nodes AS n, $adjacency_matrix AS matrix
+
+UNWIND range(0, n-1) AS i
+WITH i, n, matrix,
+     'test' + toString(i) + '@gooroom.com' AS email,
+     '$2b$12$K4kuDTzku5n.xyXYd45lUODLIZH5FGHY7upzFAGie20nQkG8iTibS' AS password,
+     'test' + toString(i) AS username,
+     'nickname' + toString(i) AS nickname,
+     randomUUID() AS node_id,
+     randomUUID() AS pd_node_id
+
+CREATE (pd:PrivateData {
+  email: email,
+  password: password,
+  username: username,
+  link_info: "",
+  verification_info: "",
+  link_count: 0,
+  verification_count: 0,
+  grant: "verified",
+  node_id: pd_node_id
+})
+CREATE (u:User {
+  username: username,
+  nickname: nickname,
+  tags: ["string"],
+  my_memo: "",
+  node_id: node_id
+})
+CREATE (pd)-[:is_info]->(u)
+
+WITH collect(u) AS users, matrix
+
+UNWIND range(0, size(users)-1) AS i
+UNWIND range(0, size(users)-1) AS j
+WITH users[i] AS user1, users[j] AS user2, matrix[i][j] AS should_connect
+WHERE i <> j AND should_connect = 1
+MERGE (user1)-[:is_roommate {edge_id: randomUUID(), memo: '', group: ''}]->(user2)
+
+RETURN "Success" AS message
 """
