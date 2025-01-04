@@ -6,8 +6,8 @@ from utils import Logger
 from config.connection import get_session
 from .dummy import (
     CREATE_SEVERAL_DUMMY,
-    CREATE_TEN_DUMMY_NODES_QUERY,
-    CREATE_TEN_DUMMY_EDGES_QUERY,
+    CREATE_FOURTEEN_DUMMY_NODES_QUERY,
+    CREATE_FOURTEEN_DUMMY_RELATIONS_QUERY,
     DELETE_DUMMY_DATA_QUERY,
 )
 
@@ -28,11 +28,11 @@ async def read_nodes(session=Depends(get_session)):
         session.close()
 
 
-@router.post("/create-ten-dummy-nodes")
-async def create_ten_dummy_nodes(
+@router.post("/create-fourteen-dummy-nodes")
+async def create_fourteen_dummy_nodes(
     session=Depends(get_session),
 ):
-    logger.info("create-ten-dummy-nodes")
+    logger.info("create-fourteen-dummy-nodes")
 
     try:
         dummy_users = [
@@ -54,7 +54,7 @@ async def create_ten_dummy_nodes(
         if "data already exists" in [d["value.message"] for d in result.data()]:
             raise HTTPException(status_code=400, detail="Data already exists")
 
-        query = CREATE_TEN_DUMMY_EDGES_QUERY
+        query = CREATE_FOURTEEN_DUMMY_RELATIONS_QUERY
         result = session.run(query)
         record = result.single()
 

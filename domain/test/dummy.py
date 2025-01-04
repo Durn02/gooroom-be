@@ -1,4 +1,4 @@
-CREATE_TEN_DUMMY_NODES_QUERY = """
+CREATE_FOURTEEN_DUMMY_NODES_QUERY = """
 UNWIND $users AS user
 
 OPTIONAL MATCH (existingUser:User {username: user.username})
@@ -34,7 +34,7 @@ RETURN value.message
 """
 
 
-CREATE_TEN_DUMMY_EDGES_QUERY = """
+CREATE_FOURTEEN_DUMMY_RELATIONS_QUERY = """
 MATCH (u1:User {nickname: 'nickname1'})
 MATCH (u2:User {nickname: 'nickname2'})
 MATCH (u3:User {nickname: 'nickname3'})
