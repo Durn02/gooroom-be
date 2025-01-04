@@ -18,13 +18,10 @@ CALL apoc.do.when(
       grant: "verified",
       node_id: randomUUID()
     })
-    CREATE (u:User {
-      username: user.username,
-      nickname: user.nickname,
-      tags: user.tags,
-      my_memo: "",
-      node_id: randomUUID()
-    })
+    CREATE (u:User)
+    SET u = user
+    SET u.my_memo = ""
+    SET u.node_id = randomUUID()
     CREATE (pd)-[:is_info]->(u)
     RETURN "success" AS message
   ',
@@ -118,13 +115,10 @@ CREATE (pd:PrivateData {
   grant: "verified",
   node_id: randomUUID()
 })
-CREATE (u:User {
-  username: user.username,
-  nickname: user.nickname,
-  tags: user.tags,
-  my_memo: "",
-  node_id: randomUUID()
-})
+CREATE (u:User)
+SET u = user
+SET u.my_memo = ""
+SET u.node_id = randomUUID()
 CREATE (pd)-[:is_info]->(u)
 
 WITH collect(u) AS users, matrix
