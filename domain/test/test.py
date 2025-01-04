@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends
+from domain.auth.request.signup_request import SignUpRequest
 from domain.service.content.content import delete_old_casts
 from utils import Logger
 from config.connection import get_session
@@ -34,9 +35,21 @@ async def create_ten_dummy_nodes(
     logger.info("create-ten-dummy-nodes")
 
     try:
+        dummy_users = [
+            SignUpRequest(
+                email=f"test{i}@gooroom.com",
+                password="$2b$12$K4kuDTzku5n.xyXYd45lUODLIZH5FGHY7upzFAGie20nQkG8iTibS",
+                tags=["string"],
+                nickname=f"nickname{i}",
+                username=f"test{i}",
+            )
+            for i in range(1, 15)
+        ]
 
         query = CREATE_TEN_DUMMY_NODES_QUERY
-        result = session.run(query)
+        result = session.run(
+            query, {"users": [user.model_dump() for user in dummy_users]}
+        )
 
         if "data already exists" in [d["value.message"] for d in result.data()]:
             raise HTTPException(status_code=400, detail="Data already exists")
@@ -64,10 +77,24 @@ async def create_several_dummy(
 
     try:
         number_of_nodes = len(adjacency_matrix)
+        dummy_users = [
+            SignUpRequest(
+                email=f"test{i}@gooroom.com",
+                password="$2b$12$K4kuDTzku5n.xyXYd45lUODLIZH5FGHY7upzFAGie20nQkG8iTibS",
+                tags=["string"],
+                nickname=f"nickname{i}",
+                username=f"test{i}",
+            )
+            for i in range(number_of_nodes)
+        ]
+
         query = CREATE_SEVERAL_DUMMY
         result = session.run(
             query,
-            {"number_of_nodes": number_of_nodes, "adjacency_matrix": adjacency_matrix},
+            {
+                "users": [user.model_dump() for user in dummy_users],
+                "adjacency_matrix": adjacency_matrix,
+            },
         )
 
         record = result.single()
