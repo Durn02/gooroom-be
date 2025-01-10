@@ -131,7 +131,7 @@ async def get_my_stickers(request: Request, session=Depends(get_session)):
         query = f"""
         MATCH (me: User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (me)<-[:is_sticker]-(sticker:Sticker)
-        WHERE sticker.delete_at IS NULL 
+        WHERE sticker.deleted_at = "" 
         RETURN collect(sticker) AS stickers
         """
 
@@ -177,7 +177,7 @@ async def delete_sticker(
             s IS NULL, 'RETURN "Sticker does not exist" AS message',
             r IS NULL, 'RETURN "Relationship does not exist" AS message'
         ],
-        'SET s.delete_at = "{datetimenow}"  RETURN "Sticker and relationship deleted" AS message',
+        'SET s.deleted_at = "{datetimenow}"  RETURN "Sticker and relationship deleted" AS message',
         {{s: s}}
         ) YIELD value
         RETURN value.message AS message
@@ -239,7 +239,7 @@ async def create_post(
                 image_url : {create_post_request.image_url},
                 is_public : {create_post_request.is_public},
                 title : '{create_post_request.title}',
-                tag : {create_post_request.tag},
+                tags : {create_post_request.tags},
                 created_at : '{datetimenow}',
                 node_id : randomUUID()
             }})
@@ -545,11 +545,9 @@ async def delete_old_casts():
     finally:
         session.close()
 
+
 @router.get("/cast/get-unread-members")
-async def get_unread_casts(
-    request:Request,
-    session = Depends(get_session)
-):
+async def get_unread_casts(request: Request, session=Depends(get_session)):
     token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
 
@@ -569,15 +567,12 @@ async def get_unread_casts(
         records = result.data()
 
         if not records:
-            raise HTTPException(
-                status_code=500, detail=f"no such user {user_node_id}"
-            )
+            raise HTTPException(status_code=500, detail=f"no such user {user_node_id}")
 
         new_contents = [
             GetCastsResponse.from_data(record["cast_node"], record["creator"])
             for record in records
-            if record.get("cast_node") is not None
-            and record.get("creator") is not None
+            if record.get("cast_node") is not None and record.get("creator") is not None
         ]
 
         return {"contents": new_contents}
@@ -586,6 +581,7 @@ async def get_unread_casts(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.get("/cast/get-unsent-members")
 async def get_unsent_members(
