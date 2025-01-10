@@ -188,7 +188,10 @@ async def signup(
                 , groups: "{{ default: '#808080'}}"
                 }})
         CREATE (alert:Alert {{
-                node_id:'randomUUID()'
+                node_id:'randomUUID()',
+                new_roommates:[],
+                stickers_from:[],
+                casts_received:[]
                 }})
         CREATE (new_p)-[:is_info]->(u)
         CREATE (alert)=[:is_alert]->(u)
@@ -244,6 +247,8 @@ async def dummy_create(
                                verification_count: 0, grant: 'user', node_id: '{private_node_id}'}})
         CREATE (u:User {{username: '{signup_request.username}', nickname: '{signup_request.nickname}', tags: {signup_request.tags}, my_memo: '',node_id: '{user_node_id}'}})
         MERGE (p)-[:is_info]->(u)
+        CREATE (a:Alert {{node_id:randomUUID()}})
+        CREATE (u)-[:has_alert]->(a)
         RETURN p, u
         """
 
@@ -268,7 +273,6 @@ async def verify_access_token_api(request: Request, response: Response):
         raise HTTPException(status_code=401, detail="access token missing")
     if not verify_access_token(token):
         raise HTTPException(status_code=401, detail="invalid access token")
-
     return VerifyAccessTokenResponse()
 
 

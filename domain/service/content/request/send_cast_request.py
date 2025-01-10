@@ -3,7 +3,7 @@ from typing import List
 
 
 class SendCastRequest(BaseModel):
-    friends: List[str]
+    friends: List[str] = Field(..., min_items=1) 
     message: str
     duration: int = Field(
         ..., ge=1

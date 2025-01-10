@@ -1,5 +1,7 @@
 class EventDispatcher:
-    KNOCK_ACCEPTED = "knock_accepted"
+    NEW_ROOMMATE_CREATED = "new_roommate_created"
+    NEW_STICKER_CREATED = "new_sticker_created"
+    NEW_CAST_CREATED = "new_cast_created"
 
     def __init__(self):
         self._listeners = {}

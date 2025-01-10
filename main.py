@@ -3,9 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from domain.api import router as domain_api_router
-from domain.service.content.content import delete_old_stickers, delete_old_casts, send_knock_accepted_cast
-from utils import Logger,dispatcher
-import asyncio
+from domain.service.content.content import delete_old_stickers, delete_old_casts
+from utils import Logger
 
 scheduler = AsyncIOScheduler()
 logger = Logger("main.py")
@@ -18,7 +17,6 @@ async def lifespan(app: FastAPI):
     logger.info("스케줄러가 실행되었습니다.")
     scheduler.add_job(func=delete_old_stickers, trigger="cron", hour=0, minute=0)
     scheduler.add_job(func=delete_old_casts, trigger="cron", minute="*/30")
-    dispatcher.subscribe(dispatcher.KNOCK_ACCEPTED, lambda *args, **kwargs: asyncio.create_task(send_knock_accepted_cast(*args, **kwargs)))
     yield
     scheduler.shutdown()
     logger.info("스케줄러가 종료되었습니다. 안녕~")
