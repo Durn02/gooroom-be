@@ -10,8 +10,8 @@ class GetMyStickersResponse(BaseModel):
     @classmethod
     def from_data(cls, sticker: Dict[str,List[str]|str] ):
         return cls(
-            sticker_node_id = sticker.get('node_id',''),
-            content=sticker.get("content", ''),
-            image_url=sticker.get("image_url", []),
-            created_at=sticker.get("created_at", '')
+            sticker_node_id = sticker["node_id"],
+            content=sticker["content"],
+            image_url=sticker["image_url"],
+            created_at=sticker["created_at"]
         )

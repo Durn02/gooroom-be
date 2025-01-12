@@ -7,7 +7,7 @@ from .service import block_router
 # mute_router, content_router, friend_router
 from .user import user_router
 from .test import test_router
-from .service import friend_router, content_router, mute_router, block_router
+from .service import friend_router, content_router, mute_router, block_router,alert_router
 
 __all__ = [
     "admin_router",
@@ -18,4 +18,5 @@ __all__ = [
     "user_router",
     "friend_router",
     "test_router",
+    "alert_router",
 ]

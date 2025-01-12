@@ -5,6 +5,6 @@
 
 from .content import content_router
 from .friend import friend_router, block_router, mute_router
+from .alert import alert_router
 
-
-__all__ = ["friend_router", "content_router", "block_router", "mute_router"]
+__all__ = ["friend_router", "content_router", "block_router", "mute_router", "alert_router"]

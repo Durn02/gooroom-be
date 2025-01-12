@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List
 
-
 class CreateStickerRequest(BaseModel):
-    content: str = Field(..., min_length=0)
+    content: str
     image_url: List[str]

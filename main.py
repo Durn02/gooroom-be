@@ -43,7 +43,6 @@ app.add_middleware(
 
 app.include_router(domain_api_router, prefix="/domain")
 
-
 @app.get("/")
 async def root():
     return {"message": "Welcome to my FastAPI application"}

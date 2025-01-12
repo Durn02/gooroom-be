@@ -18,13 +18,13 @@ class User(BaseModel):
             username = user.get('username', '')
         )
 
-class AcceptKnockResponse(BaseModel):
-    new_roommate: User
-    new_neighbors: List[User]
+class GetRoommateResponse(BaseModel):
+    roommate: User
+    neighbors: List[User]
 
     @classmethod
-    def from_data(cls, new_roommate: Dict[str,str|List[str]],new_neighbors: List[Dict[str,str|List[str]]]):
+    def from_data(cls, roommate: Dict[str,str|List[str]],neighbors: List[Dict[str,str|List[str]]]):
         return cls(
-            new_roommate = User.from_data(new_roommate),
-            new_neighbors = [User.from_data(n) for n in new_neighbors]
+            roommate = User.from_data(roommate),
+            neighbors = [User.from_data(n) for n in neighbors]
         )
