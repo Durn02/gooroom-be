@@ -15,7 +15,7 @@ from .request import (
     ModifyGroupRequest,
 )
 from .response import (
-    ListKnockResponse,
+    GetKnocksResponse,
     SendKnockResponse,
     AcceptKnockResponse,
     GetFriendResponse,
@@ -78,8 +78,8 @@ async def send_knock(
         session.close()
 
 
-@router.post("/knock/list", response_model=ListKnockResponse)
-async def list_knock(
+@router.post("/knock/get-members", response_model=GetKnocksResponse)
+async def get_knocks(
     request: Request,
     session=Depends(get_session),
 ):
@@ -95,7 +95,7 @@ async def list_knock(
         result = session.run(query)
         records = result.data()
 
-        result_list = ListKnockResponse(knocks=[])
+        result_list = GetKnocksResponse(knocks=[])
         for record in records:
             edge_id = record["knock_edge_id"]
             nickname = record.get("nickname", "")
@@ -138,8 +138,7 @@ async def reject_knock(
         session.close()
 
 
-# @router.post("/knock/accept", response_model=AcceptKnockResponse)
-@router.post("/knock/accept")
+@router.post("/knock/accept", response_model=AcceptKnockResponse)
 async def accept_knock(
     request: Request,
     session=Depends(get_session),
@@ -168,9 +167,7 @@ async def accept_knock(
         if not record:
             raise HTTPException(status_code=400, detail="no such knock_edge or already other relations(another knock,is_roommate) exist")
 
-        # knock_creator = record["new_roommate"].get("node_id")
-        # knock_receiver = record["me"].get("node_id")
-        # dispatcher.dispatch(dispatcher.NEW_ROOMMATE_CREATED,knock_creator,knock_receiver)
+        return AcceptKnockResponse.from_data(record["new_roommate"], record["new_neighbors"])
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -280,11 +277,11 @@ async def get_members(
         OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
             WHERE n<>me
         WITH r1,collect(n.node_id) as ns
-        WITH collect({{r1:properties(r1),roommate:properties(endNode(r1)),neighbors:ns}}) as collected,collect(endNode(r1)) as roommates
+        WITH collect({{roommate_edge:properties(r1),roommate:properties(endNode(r1)),neighbors:ns}}) as collected,collect(endNode(r1)) as roommates
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})-[r1:is_roommate]->(r:User)
         OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
         WHERE n<>me AND NOT (me)-[:block]->(n) AND NOT n in roommates
-        RETURN collect(DISTINCT n) as pure_neighbors,collected as roommatesWithNeighbors
+        RETURN me,collect(DISTINCT n) as pure_neighbors,collected as roommatesWithNeighbors
         """
         result = session.run(query)
         record = result.data()

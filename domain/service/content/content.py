@@ -20,6 +20,7 @@ from .request import (
 from .response import (
     CreateStickerResponse,
     GetStickersResponse,
+    GetMyStickersResponse,
     DeleteStickerResponse,
     CreatePostResponse,
     GetPostsResponse,
@@ -76,8 +77,7 @@ async def create_sticker(
     finally:
         session.close()
 
-
-@router.post("/sticker/get-contents", response_model=List[GetStickersResponse])
+@router.post("/sticker/get-members", response_model=List[GetStickersResponse])
 async def get_stickers(
     request: Request,
     session=Depends(get_session),
@@ -121,6 +121,38 @@ async def get_stickers(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
+@router.get("/sticker/get-my-contents", response_model=List[GetMyStickersResponse])
+async def get_my_stickers(request: Request, session=Depends(get_session)):
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        MATCH (me: User {{node_id: '{user_node_id}'}})
+        OPTIONAL MATCH (me)<-[:is_sticker]-(sticker:Sticker)
+        WHERE sticker.deleted_at = "" 
+        RETURN collect(sticker) AS stickers
+        """
+
+        result = session.run(query)
+        record = result.single()
+
+        if not record:
+            raise HTTPException(status_code=404, detail=f"no such user {user_node_id}")
+
+        return [
+            GetMyStickersResponse.from_data(dict(sticker))
+            for sticker in record["stickers"]
+        ]
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
 
 @router.put("/sticker/read")
 async def put_receiver_of_sticker_as_read(

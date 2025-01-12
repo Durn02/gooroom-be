@@ -5,7 +5,7 @@ class KnockData(BaseModel):
     edge_id: str
     nickname: str
 
-class ListKnockResponse(BaseModel):
+class GetKnocksResponse(BaseModel):
     knocks: List[KnockData]
 
     def append_knock(self, edge_id: str, nickname: str):
