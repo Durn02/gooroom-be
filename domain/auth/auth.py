@@ -187,14 +187,7 @@ async def signup(
                 , node_id: '{user_node_id}'
                 , groups: "{{ default: '#808080'}}"
                 }})
-        CREATE (alert:Alert {{
-                node_id:'randomUUID()',
-                new_roommates:[],
-                stickers_from:[],
-                casts_received:[]
-                }})
         CREATE (new_p)-[:is_info]->(u)
-        CREATE (alert)=[:is_alert]->(u)
         RETURN p,new_p,u
         """
         result = session.run(query)
@@ -265,34 +258,34 @@ async def dummy_create(
 
 
 @router.get("/verify-access-token")
-async def verify_access_token_api(request: Request, response: Response):
+async def verify_access_token_api(request: Request):
     logger.info("verify access token(api)")
     token = request.cookies.get(access_token)
 
     if not token:
         raise HTTPException(status_code=401, detail="access token missing")
-    if not verify_access_token(token):
-        raise HTTPException(status_code=401, detail="invalid access token")
-    return VerifyAccessTokenResponse()
+    try:
+        user_node_id = verify_access_token(token)["user_node_id"]
+        return user_node_id
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 
 @router.post("/refresh-acc-token")
-async def refresh_acc_token(request: Request, response: Response):
+async def refresh_acc_token(request: Request, response:Response):
     logger.info("refresh access token")
     token = request.cookies.get(refresh_token)
 
     if not token:
         raise HTTPException(status_code=401, detail="refresh token missing")
-    # verify_access_token(token)
-
+    
     token = verify_refresh_token(token)
-
     new_token = create_access_token(token.get("user_node_id"))
     if not new_token:
         raise HTTPException(status_code=400, detail="failed to refresh access token")
 
     response.set_cookie(key=access_token, value=f"{new_token}", httponly=True)
-    return RefreshAccTokenResponse()
+    return token.get("user_node_id")
 
 
 @router.post("/signin")
@@ -330,7 +323,7 @@ async def signin(
 
         token = create_refresh_token(user_node_id)
         response.set_cookie(key=refresh_token, value=f"{token}", httponly=True)
-        return SignInResponse()
+        return user_node_id
 
     except HTTPException as e:
         raise e
