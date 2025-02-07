@@ -5,9 +5,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from domain.api import router as domain_api_router
 from domain.service.content.content import delete_old_stickers, delete_old_casts
 from utils import Logger
+from dotenv import load_dotenv
+import os
 
 scheduler = AsyncIOScheduler()
 logger = Logger("main.py")
+load_dotenv()
 
 
 @asynccontextmanager
@@ -24,14 +27,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
+FRONT_URL = os.getenv("FRONT_URL")
 origins = [
-    "http://localhost",
-    "http://localhost:8000",
-    "http://127.0.0.1",
-    "http://127.0.0.1:8000",
-    "http://localhost:3000",
+    FRONT_URL,
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,6 +42,7 @@ app.add_middleware(
 )
 
 app.include_router(domain_api_router, prefix="/domain")
+
 
 @app.get("/")
 async def root():

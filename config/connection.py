@@ -22,6 +22,5 @@ NEO4J_DATABASE = os.getenv("NEO4J_DATABASE")
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 def get_session():
-    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     session = driver.session(database=NEO4J_DATABASE)
     return session

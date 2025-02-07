@@ -25,11 +25,13 @@ from .response import (
     RejectKnockResponse,
     ModifyGroupResponse,
 )
-
+import os
+from dotenv import load_dotenv
 
 ACCESS_TOKEN = "access_token"
 router = APIRouter()
 logger = Logger(__file__)
+load_dotenv()
 
 
 @router.post("/knock/send", response_model=SendKnockResponse)
@@ -165,9 +167,14 @@ async def accept_knock(
         result = session.run(query)
         record = result.single()
         if not record:
-            raise HTTPException(status_code=400, detail="no such knock_edge or already other relations(another knock,is_roommate) exist")
+            raise HTTPException(
+                status_code=400,
+                detail="no such knock_edge or already other relations(another knock,is_roommate) exist",
+            )
 
-        return AcceptKnockResponse.from_data(record["new_roommate"], record["new_neighbors"])
+        return AcceptKnockResponse.from_data(
+            record["new_roommate"], record["new_neighbors"]
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -205,7 +212,8 @@ async def create_knock_by_link(
         if not record:
             raise HTTPException(status_code=400, detail="failed to create link")
 
-        return f"https://gooroom/domain/friend/knock/accept_by_link:{link_code}"
+        front_url = os.getenv("FRONT_URL")
+        return f"{front_url}/knock/{link_code}"
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -343,6 +351,7 @@ async def get_member(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.delete("/delete-member", response_model=DeleteFriendResponse)
 async def delete_member(
