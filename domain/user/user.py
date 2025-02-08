@@ -32,7 +32,7 @@ async def my_info(
     try:
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
-        RETURN u
+        RETURN properties(u) as user
         """
         result = session.run(query)
         record = result.single()
@@ -40,7 +40,7 @@ async def my_info(
         if not record:
             raise HTTPException(status_code=400, detail="User not found")
         else:
-            user_data = record["u"]
+            user_data = record["user"]
             return user_data
 
     except HTTPException as e:
