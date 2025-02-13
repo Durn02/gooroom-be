@@ -67,7 +67,4 @@ class GetNewContentsResponse(BaseModel):
         )
 
     def is_empty(self) -> bool:
-        print("not self.new_roommates", not self.new_roommates)
-        print("not self.casts_received", not self.casts_received)
-        print("not self.stickers_from", not self.stickers_from)
         return not self.new_roommates and not self.casts_received and not self.stickers_from
