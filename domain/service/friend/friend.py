@@ -279,17 +279,17 @@ async def get_members(
     try:
         query = f"""
         MATCH (me:User {{node_id: '{user_node_id}'}})
-        OPTIONAL MATCH (me)-[r1:is_roommate]->(r:User)
-        REMOVE r1.new
-        WITH me,r1,r
-        OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
-            WHERE n<>me
-        WITH r1,collect(n.node_id) as ns
-        WITH collect({{roommate_edge:properties(r1),roommate:properties(endNode(r1)),neighbors:ns}}) as collected,collect(endNode(r1)) as roommates
-        OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})-[r1:is_roommate]->(r:User)
-        OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
-        WHERE n<>me AND NOT (me)-[:block]->(n) AND NOT n in roommates
-        RETURN me,collect(DISTINCT n) as pure_neighbors,collected as roommatesWithNeighbors
+            OPTIONAL MATCH (me)-[r1:is_roommate]->(r:User)
+            REMOVE r1.new
+            WITH me,r1,r
+            OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
+                WHERE n<>me
+            WITH me, r1,collect(n.node_id) as ns
+            WITH collect({{roommate_edge:properties(r1),roommate:properties(endNode(r1)),neighbors:ns}}) as collected,collect(endNode(r1)) as roommates, me
+            OPTIONAL MATCH (me)-[r1:is_roommate]->(r:User)
+            OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
+            WHERE n<>me AND NOT (me)-[:block]->(n) AND NOT n in roommates
+            RETURN me,collect(DISTINCT n) as pure_neighbors,collected as roommatesWithNeighbors    
         """
         result = session.run(query)
         record = result.data()
