@@ -1,12 +1,13 @@
 # backend/domain/user/user.py
 from fastapi import HTTPException, APIRouter, Depends, Request
-from domain.user.request.my_info_change_request import MyInfoChangeRequest
 from utils import verify_access_token, Logger
 from config.connection import get_session
 
 from .request import (
     MyInfoChangeWithoutTagsRequest,
     MyTagsChangeRequest,
+    MyInfoChangeRequest,
+    MyGroupsChangeRequest
 )
 
 ACCESS_TOKEN = "access_token"
@@ -71,6 +72,7 @@ async def my_info_change(
             u.nickname = '{user_info.nickname}',
             u.username = '{user_info.username}',
             u.tags = {user_info.tags}
+            u.profile_image_url = {user_info.profile_image_url}
         RETURN u
         """
         result = session.run(query)
@@ -112,6 +114,7 @@ async def my_info_change_without_tags(
         SET u.my_memo = '{user_info.my_memo}',
             u.nickname = '{user_info.nickname}',
             u.username = '{user_info.username}'
+            u.profile_image_url = '{user_info.profile_image_url}'
         RETURN u
         """
         result = session.run(query)
@@ -175,7 +178,7 @@ async def my_tags_change(
 @router.put("/my/groups/change")
 async def my_groups_change(
     request: Request,
-    user_groups_info: MyTagsChangeRequest,
+    user_groups_info: MyGroupsChangeRequest,
     session=Depends(get_session),
 ):
     logger.info("my_tags_change")

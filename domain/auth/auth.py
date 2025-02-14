@@ -186,6 +186,7 @@ async def signup(
                 , my_memo: ''
                 , node_id: '{user_node_id}'
                 , groups: "{{ default: '#808080'}}"
+                , profile_image_url: '{signup_request.profile_image_url}'
                 }})
         CREATE (new_p)-[:is_info]->(u)
         RETURN p,new_p,u
@@ -237,7 +238,7 @@ async def dummy_create(
         create_query = f"""
         CREATE (p:PrivateData {{email: '{signup_request.email}', password: '{encrypted_password}', username: '{signup_request.username}',
                                link_info: '', verification_info: '', link_count: 0,
-                               verification_count: 0, grant: 'user', node_id: '{private_node_id}'}})
+                               verification_count: 0, grant: 'user', node_id: '{private_node_id}',profile_image_url:'{signup_request.profile_image_url}'}})
         CREATE (u:User {{username: '{signup_request.username}', nickname: '{signup_request.nickname}', tags: {signup_request.tags}, my_memo: '',node_id: '{user_node_id}'}})
         MERGE (p)-[:is_info]->(u)
         CREATE (a:Alert {{node_id:randomUUID()}})

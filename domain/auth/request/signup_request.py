@@ -8,3 +8,4 @@ class SignUpRequest(BaseModel):
     tags: List[str]
     nickname: str = Field(..., min_length=1)
     username: str
+    profile_image_url: str = ""
