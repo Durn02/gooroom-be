@@ -241,8 +241,6 @@ async def dummy_create(
                                verification_count: 0, grant: 'user', node_id: '{private_node_id}',profile_image_url:'{signup_request.profile_image_url}'}})
         CREATE (u:User {{username: '{signup_request.username}', nickname: '{signup_request.nickname}', tags: {signup_request.tags}, my_memo: '',node_id: '{user_node_id}'}})
         MERGE (p)-[:is_info]->(u)
-        CREATE (a:Alert {{node_id:randomUUID()}})
-        CREATE (u)-[:has_alert]->(a)
         RETURN p, u
         """
 

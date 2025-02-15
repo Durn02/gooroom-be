@@ -294,6 +294,12 @@ async def get_members(
         result = session.run(query)
         record = result.data()
 
+        if record[0]["roommatesWithNeighbors"][0] == {
+            "neighbors": [],
+            "roommate_edge": None,
+            "roommate": None,
+        }:
+            record[0]["roommatesWithNeighbors"] = []
         return record
 
     except HTTPException as e:
