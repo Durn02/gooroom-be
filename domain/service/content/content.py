@@ -560,7 +560,7 @@ async def get_contents(
             WHERE NOT (me)-[:block]-(creator_of_cast) 
             AND NOT (me)-[:mute]->(creator_of_cast)
         REMOVE r.new
-        WITH me,collect({{cast:properties(cast),creator:cast.node_id}}) as casts
+        WITH me,collect({{cast:properties(cast),creator:creator_of_cast.node_id}}) as casts
 
         OPTIONAL MATCH (me)-[:is_roommate]->(roommate:User)<-[:creator_of_sticker]-(sticker:Sticker {{deleted_at:''}})
             WHERE NOT (me)<-[:receiver_of_sticker {{read: true}}]-(sticker)
@@ -593,6 +593,7 @@ async def get_contents(
                 detail=f"internal server Error",
             )
         
+        # Todo. return with cast_creator node_id
         return GetContentsResponse.from_datas(record["casts"],record["stickered_roommates"],record["stickered_neighbors"])
 
     except HTTPException as e:
