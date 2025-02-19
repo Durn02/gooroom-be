@@ -103,7 +103,7 @@ async def pop_muted(
             raise HTTPException(status_code=400, detail="Failed to mute")
         else:
             return PopMutedResponse(
-                message=f"'{pop_muted_request.block_edge_id}' dropped"
+                message=f"'{pop_muted_request.mute_edge_id}' dropped"
             )
 
     except HTTPException as e:
