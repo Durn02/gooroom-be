@@ -50,17 +50,25 @@ async def send_knock(
         query = f"""
         MATCH (from_user:User {{node_id: '{from_user_node_id}'}})
         MATCH (to_user:User {{node_id: '{to_user_node_id}'}})
-        WHERE from_user.node_id <> to_user.node_id
-        OPTIONAL MATCH (from_user)-[r:is_roommate]->(to_user)
-        WITH from_user, to_user, r
-        WHERE r IS NULL
+
         OPTIONAL MATCH (from_user)-[k:knock]->(to_user)
-        WITH from_user, to_user, k
-        WHERE k IS NULL AND NOT (from_user)-[:block]-(to_user) AND NOT (to_user)-[:block]-(from_user)
-        CREATE (from_user)-[nk:knock]->(to_user)
-        SET nk.edge_id = '{knock_edge_id}'
-        RETURN "knock created" AS message, nk.edge_id AS knock_edge_id
-        """
+        OPTIONAL MATCH (from_user)-[b:block]->(to_user)
+
+        WITH from_user, to_user, k, b
+
+        CALL apoc.do.case(
+        [
+            from_user.node_id = to_user.node_id, 'RETURN "cannot send to myself" AS message',
+            from_user IS NULL, 'RETURN "User does not exist" AS message',
+            to_user IS NULL, 'RETURN "User does not exist" AS message',
+            k IS NOT NULL, 'RETURN "knock already sent" AS message',
+            b IS NOT NULL, 'RETURN "blocked" AS message'
+        ],
+        'CREATE (from_user)-[k: knock {{edge_id: \\\'{knock_edge_id}\\\'}}]->(to_user) RETURN "send knock successfully" AS message',
+        {{from_user:from_user, to_user:to_user}}
+        ) YIELD value
+        RETURN value.message AS message
+    """
 
         result = session.run(query)
         record = result.single()
@@ -69,8 +77,9 @@ async def send_knock(
                 status_code=404,
                 detail="Cannot create knock_edge",
             )
+        return record
 
-        return SendKnockResponse()
+        # return SendKnockResponse()
 
     except HTTPException as e:
         raise e
