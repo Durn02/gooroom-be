@@ -55,7 +55,7 @@ class GetNewContentsResponse(BaseModel):
                     duration=cast["cast"]["duration"],
                     created_at=cast["cast"]["created_at"],
                     node_id=cast["cast"]["node_id"],
-                    creator=cast["creator"],
+                    creator=cast["cast_creator"],
                 )
                 for cast in casts
             ]

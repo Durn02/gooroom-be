@@ -629,7 +629,7 @@ async def get_new_contents(
             WITH me, new_roommate, collect(properties(neighbor)) AS neighbors
             WITH me, collect({{new_roommate:properties(new_roommate),neighbors:neighbors}}) AS new_roommates
 
-            OPTIONAL MATCH (me)<-[r:receiver_of_cast {{new:true}}]-(cast:Cast {{deleted_at:''}})<-[:creator_of_cast]-(cast_creator:User)
+            OPTIONAL MATCH (me)<-[r:receiver_of_cast {{new:true}}]-(cast:Cast {{deleted_at:''}})-[:creator_of_cast]->(cast_creator:User)
                 WHERE NOT (me)-[:mute]->(cast_creator)
                 AND NOT (me)-[:block]-(cast_creator)
             REMOVE r.new
