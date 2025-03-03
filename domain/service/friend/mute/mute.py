@@ -26,18 +26,26 @@ async def mute_friend(
         query = f"""
             MATCH (from_user:User {{node_id: '{user_node_id}'}}), (to_user:User {{node_id: '{mute_friend_request.user_node_id}'}})
             OPTIONAL MATCH (from_user)-[m:mute]->(to_user)
+
             WITH from_user, to_user, m
-            WHERE m IS NULL
-            MERGE (from_user)-[:mute {{edge_id: randomUUID()}}]->(to_user)
-            RETURN 
-                CASE WHEN m IS NULL THEN 'User muted successfully' ELSE 'failed' END AS message
+
+            CALL apoc.do.case(
+            [
+                from_user.node_id = to_user.node_id, 'RETURN "cannot mute myself" AS message',
+                m IS NOT NULL, 'RETURN "already muted" AS message'
+            ],
+            'MERGE (from_user)-[:mute {{edge_id: randomUUID()}}]->(to_user) RETURN "muted successfully" AS message',
+            {{from_user: from_user, to_user: to_user, m: m}}
+            ) YIELD value
+            RETURN value.message AS message
             """
+
 
         result = session.run(query)
         record = result.single()
 
         if not record:
-            raise HTTPException(status_code=400, detail="Failed to block")
+            raise HTTPException(status_code=400, detail="Failed to mute")
         return MuteFriendResponse(message=record["message"])
 
     except HTTPException as e:
