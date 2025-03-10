@@ -318,10 +318,22 @@ async def signin(
 
         user_node_id = record["user_node_id"]
         token = create_access_token(user_node_id)
-        response.set_cookie(key=access_token, value=f"{token}", httponly=True)
 
         token = create_refresh_token(user_node_id)
-        response.set_cookie(key=refresh_token, value=f"{token}", httponly=True)
+
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            max_age=2592000,
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=token,
+            httponly=True,
+            max_age=2592000,
+        )
         return user_node_id
 
     except HTTPException as e:
