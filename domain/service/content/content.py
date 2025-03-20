@@ -16,6 +16,8 @@ from .request import (
     SendCastRequest,
     GetNeighborsWithStickerRequest,
     ReadStickerRequest,
+    ReplyCastRequest,
+    GetCastRepliesRequest
 )
 from .response import (
     CreateStickerResponse,
@@ -29,6 +31,7 @@ from .response import (
     GetContentsResponse,
     GetNewContentsResponse,
     GetNeighborsWithStickerResponse,
+    GetCastRepliesResponse
 )
 
 logger = Logger(__file__)
@@ -614,6 +617,76 @@ async def get_contents(
     finally:
         session.close()
 
+
+@router.post("/cast/reply/create")
+async def create_cast_reply(
+    request: Request,
+    session=Depends(get_session),
+    reply_cast_request: ReplyCastRequest = Body(...),
+):
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+    datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+    try:
+        query = f"""
+        MATCH (me:User {{node_id: '{user_node_id}'}})<-[:receiver_of_cast]-(cast:Cast {{node_id:'{reply_cast_request.cast_node_id}',deleted_at:''}})
+        CREATE (me)-[reply:cast_reply {{
+            node_id:randomUUID(),
+            content:'{reply_cast_request.content}',
+            type:'{reply_cast_request.type}',
+            created_at:'{datetimenow}'
+        }}]->(cast)
+        return reply.node_id
+        """
+
+        print("query : ", query)
+
+        result = session.run(query)
+        record = result.single()
+
+        print(record)
+
+        if not record:
+            raise HTTPException(
+                status_code=404,
+                detail=f"invalid relationship {user_node_id},{reply_cast_request.cast_node_id}",
+            )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+@router.post("/cast/reply/get-members", response_model=List[GetCastRepliesResponse])
+async def get_cast_reply(
+    request: Request,
+    session=Depends(get_session),
+    get_cast_replies_request: GetCastRepliesRequest = Body(...),
+):
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        MATCH (me:User {{node_id: '{user_node_id}'}})<-[]-(cast:Cast {{node_id:'{get_cast_replies_request.cast_node_id}',deleted_at:''}})
+        OPTIONAL MATCH (cast)<-[reply:cast_reply]-(replier:User)
+        RETURN properties(reply) as reply,properties(replier) as replier ORDER BY reply.created_at ASC 
+        """
+
+        result = session.run(query)
+        records = result.data()
+        
+        return [GetCastRepliesResponse.from_data( dict(record["reply"]) , dict(record["replier"]) ) for record in records]
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
 
 @router.get("/get-new-contents")
 async def get_new_contents(
