@@ -1,13 +1,13 @@
 # backend/domain/user/user.py
 from fastapi import HTTPException, APIRouter, Depends, Request
-from utils import verify_access_token, Logger
-from config.connection import get_session
+from app.utils import verify_access_token, Logger
+from app.config.connection import get_session
 
 from .request import (
     MyInfoChangeWithoutTagsRequest,
     MyTagsChangeRequest,
     MyInfoChangeRequest,
-    MyGroupsChangeRequest
+    MyGroupsChangeRequest,
 )
 
 ACCESS_TOKEN = "access_token"

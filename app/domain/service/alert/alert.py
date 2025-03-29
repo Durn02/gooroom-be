@@ -2,12 +2,13 @@ import asyncio
 from typing import List
 from datetime import datetime, timezone
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
-from utils import verify_access_token, Logger
-from config.connection import get_session
+from app.utils import verify_access_token, Logger
+from app.config.connection import get_session
 
 logger = Logger(__file__)
 router = APIRouter()
 ACCESS_TOKEN = "access_token"
+
 
 @router.get("/get-members")
 async def get_alerts(
@@ -17,11 +18,7 @@ async def get_alerts(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     for _ in range(3):
-        alerts = {
-            "new_roommates": [],
-            "stickers_from": [],
-            "casts_received": []
-        }
+        alerts = {"new_roommates": [], "stickers_from": [], "casts_received": []}
         session = get_session()
         try:
             query = f"""
@@ -39,7 +36,8 @@ async def get_alerts(
 
             if not record:
                 raise HTTPException(
-                    status_code=500, detail=f"no such user {user_node_id} or its alertBox"
+                    status_code=500,
+                    detail=f"no such user {user_node_id} or its alertBox",
                 )
 
             if record["new_roommates"]:

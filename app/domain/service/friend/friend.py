@@ -2,8 +2,8 @@
 from datetime import datetime, timedelta
 import uuid
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
-from utils import verify_access_token, Logger, dispatcher
-from config.connection import get_session
+from app.utils import verify_access_token, Logger, dispatcher
+from app.config.connection import get_session
 from .request import (
     SendKnockRequest,
     RejectKnockRequest,

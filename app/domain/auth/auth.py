@@ -7,8 +7,8 @@ import uuid
 import random
 import string
 from fastapi import HTTPException, APIRouter, Depends, Body, Request, Response
-from config.connection import get_session
-from utils import (
+from app.config.connection import get_session
+from app.utils import (
     hash_password,
     verify_password,
     create_access_token,
@@ -271,13 +271,13 @@ async def verify_access_token_api(request: Request):
 
 
 @router.post("/refresh-acc-token")
-async def refresh_acc_token(request: Request, response:Response):
+async def refresh_acc_token(request: Request, response: Response):
     logger.info("refresh access token")
     token = request.cookies.get(refresh_token)
 
     if not token:
         raise HTTPException(status_code=401, detail="refresh token missing")
-    
+
     token = verify_refresh_token(token)
     new_token = create_access_token(token.get("user_node_id"))
     if not new_token:

@@ -3,8 +3,8 @@ import asyncio
 from typing import List
 from datetime import datetime, timezone
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
-from utils import verify_access_token, Logger
-from config.connection import get_session
+from app.utils import verify_access_token, Logger
+from app.config.connection import get_session
 from .request import (
     CreateStickerRequest,
     GetStickersRequest,
@@ -15,7 +15,8 @@ from .request import (
     DeleteMyPostRequest,
     SendCastRequest,
     GetNeighborsWithStickerRequest,
-    ReadStickerRequest
+    ReadStickerRequest,
+    ReplyCastRequest,
 )
 from .response import (
     CreateStickerResponse,
@@ -28,7 +29,8 @@ from .response import (
     SendCastResponse,
     GetContentsResponse,
     GetNewContentsResponse,
-    GetNeighborsWithStickerResponse
+    GetNeighborsWithStickerResponse,
+    ReplyCastResponse,
 )
 
 logger = Logger(__file__)
@@ -77,6 +79,7 @@ async def create_sticker(
     finally:
         session.close()
 
+
 @router.post("/sticker/get-members", response_model=List[GetStickersResponse])
 async def get_stickers(
     request: Request,
@@ -121,6 +124,7 @@ async def get_stickers(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.get("/sticker/get-my-contents", response_model=List[GetMyStickersResponse])
 async def get_my_stickers(request: Request, session=Depends(get_session)):
@@ -173,14 +177,18 @@ async def put_receiver_of_sticker_as_read(
         record = result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail=f"""invalid receiver_of_sticker_edge between {user_node_id},{read_sticker_request.sticker_id}""")
+            raise HTTPException(
+                status_code=500,
+                detail=f"""invalid receiver_of_sticker_edge between {user_node_id},{read_sticker_request.sticker_id}""",
+            )
 
     except HTTPException as e:
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        session.close()    
+        session.close()
+
 
 @router.delete("/sticker/delete", response_model=DeleteStickerResponse)
 async def delete_sticker(
@@ -489,6 +497,7 @@ async def create_cast(
         CREATE (cast_node:Cast {{
             node_id:randomUUID(),
             message:'{send_cast_request.message}',
+            reply_visible: True,
             created_at:'{datetimenow}',
             duration:{send_cast_request.duration},
             deleted_at:''}})
@@ -509,9 +518,40 @@ async def create_cast(
                 status_code=404,
                 detail=f"no such user {user_node_id} or no any valid friends",
             )
-        
+
         # dispatcher.dispatch(dispatcher.NEW_CAST_CREATED,record["cast_node"],record["receivers"])
         return SendCastResponse()
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+        
+@router.post("/cast/reply", response_model=ReplyCastResponse)
+async def put_receiver_of_sticker_as_read(
+    request: Request,
+    session=Depends(get_session),
+    reply_cast_request: ReplyCastRequest = Body(...),
+):
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+    try:
+        query = f"""
+        MATCH (me:User {{node_id:'{user_node_id}'}})<-[receiver_of_cast:receiver_of_cast]-(case:Cast {{node_id:'{reply_cast_request.cast_id}'}})
+        CREATE (me)-[is_reply:is_reply {{message: '{reply_cast_request.message}', edge_id:randomUUID()}}]->(case)
+        RETURN is_reply
+        """
+
+        result = session.run(query)
+        record = result.single()
+
+        if not record:
+            raise HTTPException(
+                status_code=500,
+                detail=f"""invalid receiver_of_sticker_edge between {user_node_id},{reply_cast_request.cast_id}""",
+            )
 
     except HTTPException as e:
         raise e
@@ -592,9 +632,13 @@ async def get_contents(
                 status_code=404,
                 detail=f"internal server Error",
             )
-        
+
         # Todo. return with cast_creator node_id
-        return GetContentsResponse.from_datas(record["casts"],record["stickered_roommates"],record["stickered_neighbors"])
+        return GetContentsResponse.from_datas(
+            record["casts"],
+            record["stickered_roommates"],
+            record["stickered_neighbors"],
+        )
 
     except HTTPException as e:
         raise e
@@ -602,6 +646,7 @@ async def get_contents(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
 
 @router.get("/get-new-contents")
 async def get_new_contents(
@@ -611,11 +656,7 @@ async def get_new_contents(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     for _ in range(3):
-        response = {
-            "new_roommates": [],
-            "stickers_from": [],
-            "casts_received": []
-        }
+        response = {"new_roommates": [], "stickers_from": [], "casts_received": []}
         session = get_session()
         try:
             query = f"""
@@ -651,7 +692,11 @@ async def get_new_contents(
                 raise HTTPException(
                     status_code=404, detail=f"no such user {user_node_id}"
                 )
-            response = GetNewContentsResponse.from_datas(record["new_roommates"],record["casts_received"],record["stickers_from"])
+            response = GetNewContentsResponse.from_datas(
+                record["new_roommates"],
+                record["casts_received"],
+                record["stickers_from"],
+            )
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -664,6 +709,7 @@ async def get_new_contents(
             await asyncio.sleep(10)
 
     return response
+
 
 @router.post("/get_neighbors_with_stickers")
 async def get_neighbors_with_stickers(
@@ -697,9 +743,12 @@ async def get_neighbors_with_stickers(
                 status_code=404,
                 detail=f"invalid is_roommate {user_node_id},{get_neighbors_with_sticker_request.roommate_node_id}",
             )
-        
+
         return [
-            GetNeighborsWithStickerResponse.from_data(record["neighbor"], record["stickers"])for record in records
+            GetNeighborsWithStickerResponse.from_data(
+                record["neighbor"], record["stickers"]
+            )
+            for record in records
         ]
 
     except HTTPException as e:

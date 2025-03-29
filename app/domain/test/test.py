@@ -2,9 +2,9 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from domain.auth.request.signup_request import SignUpRequest
 from domain.service.content.content import delete_old_casts
-from utils import Logger
-from config.connection import get_session
-from utils.dummy_user import create_dummy_user
+from app.utils import Logger
+from app.config.connection import get_session
+from app.utils.dummy_user import create_dummy_user
 from .dummy import (
     CREATE_SEVERAL_DUMMY,
     CREATE_FOURTEEN_DUMMY_NODES_QUERY,

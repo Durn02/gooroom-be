@@ -1,8 +1,8 @@
 # backend/domain/service/friend/block/block.py
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
-from utils import verify_access_token, Logger
-from config.connection import get_session
+from app.utils import verify_access_token, Logger
+from app.config.connection import get_session
 from .request import MuteFriendRequest, PopMutedRequest
 from .response import MuteFriendResponse, GetMutedResponse, PopMutedResponse
 
@@ -39,7 +39,6 @@ async def mute_friend(
             ) YIELD value
             RETURN value.message AS message
             """
-
 
         result = session.run(query)
         record = result.single()

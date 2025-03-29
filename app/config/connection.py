@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, WebSocket, WebSocketDisconnect
 from dotenv import load_dotenv
 
 # import nest_asyncio
-from utils import Logger
+from app.utils import Logger
 from neo4j import GraphDatabase
 
 # nest_asyncio.apply()
@@ -20,6 +20,7 @@ NEO4J_USER = os.getenv("NEO4J_USER")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 NEO4J_DATABASE = os.getenv("NEO4J_DATABASE")
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+
 
 def get_session():
     session = driver.session(database=NEO4J_DATABASE)

@@ -2,9 +2,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from domain.api import router as domain_api_router
-from domain.service.content.content import delete_old_stickers, delete_old_casts
-from utils import Logger
+from app.domain.api import router as domain_api_router
+from app.domain.service.content.content import delete_old_stickers, delete_old_casts
+from app.utils import Logger
 from dotenv import load_dotenv
 import os
 

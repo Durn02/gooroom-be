@@ -1,10 +1,10 @@
 # backend/domain/admin/admin.py
 from fastapi import HTTPException, APIRouter, Depends, Body, Request, Response
-from utils import (
+from app.utils import (
     verify_access_token,
     Logger,
 )
-from config.connection import get_session
+from app.config.connection import get_session
 from .response import DeleteUserResponse
 from .request import DeleteUserRequest
 
