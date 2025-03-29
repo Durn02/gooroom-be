@@ -635,12 +635,11 @@ async def create_cast_reply(
             node_id:randomUUID(),
             content:'{reply_cast_request.content}',
             type:'{reply_cast_request.type}',
+            is_public:'{reply_cast_request.is_public}'
             created_at:'{datetimenow}'
         }}]->(cast)
         return reply.node_id
         """
-
-        print("query : ", query)
 
         result = session.run(query)
         record = result.single()
@@ -660,8 +659,9 @@ async def create_cast_reply(
     finally:
         session.close()
 
-@router.post("/cast/reply/get-members", response_model=List[GetCastRepliesResponse])
-async def get_cast_reply(
+# @router.post("/cast/reply/get-members", response_model=List[GetCastRepliesResponse])
+@router.post("/cast/reply/get-members")
+async def get_cast_replies(
     request: Request,
     session=Depends(get_session),
     get_cast_replies_request: GetCastRepliesRequest = Body(...),
@@ -678,6 +678,15 @@ async def get_cast_reply(
 
         result = session.run(query)
         records = result.data()
+        
+        if not records:
+            raise HTTPException(
+                status_code=404,
+                detail=f"invalid relationship {user_node_id},{get_cast_replies_request.cast_node_id}",
+            )
+
+        if records[0]['reply']==None : 
+            return []
         
         return [GetCastRepliesResponse.from_data( dict(record["reply"]) , dict(record["replier"]) ) for record in records]
 

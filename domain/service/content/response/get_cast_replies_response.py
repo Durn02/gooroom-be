@@ -5,6 +5,7 @@ class Reply(BaseModel):
     content: str
     created_at: str
     type: str
+    is_public:bool
     node_id: str
 
 class Replier(BaseModel):
@@ -16,17 +17,21 @@ class GetCastRepliesResponse(BaseModel):
     replier: Replier
 
     @classmethod
-    def from_data(cls, arg1: Dict[str, str], arg2: Dict[str, str]):
+    def from_data(cls, reply: Dict[str, str|bool], replier: Dict[str, str]):
 
         return cls(
             reply=Reply(
-                content=arg1.get("content"),
-                created_at=arg1.get("created_at"),
-                type=arg1.get("type"),
-                node_id=arg1.get("node_id"),
+                content=reply.get("content"),
+                created_at=reply.get("created_at"),
+                type=reply.get("type"),
+                private=reply.get("is_public"),
+                node_id=reply.get("node_id"),
             ),
             replier=Replier(
-                nickname=arg2.get("nickname"),
-                node_id=arg2.get("node_id"),
+                nickname=replier.get("nickname"),
+                node_id=replier.get("node_id"),
             )
         )
+
+    def is_empty(self) -> bool:
+        return not self.reply is None
