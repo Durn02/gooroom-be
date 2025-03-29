@@ -47,9 +47,14 @@ dmypy.json
 # VS Code project files
 .vscode/
 
-#env
+# Environment variables
 .env
+.env.*
 *.env
+.env.local
+.env.development
+.env.test
+.env.production
 secret.txt
 
 # misc
