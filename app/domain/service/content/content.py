@@ -63,6 +63,7 @@ async def create_sticker(
         CREATE (s)-[creator:creator_of_sticker {{edge_id : randomUUID()}}]->(u)
         RETURN creator
         """
+        print(query)
         result = session.run(query)
         record = result.single()
         logger.info(f"""create_sticker success {record}""")
@@ -134,7 +135,7 @@ async def get_my_stickers(request: Request, session=Depends(get_session)):
     try:
         query = f"""
         MATCH (me: User {{node_id: '{user_node_id}'}})
-        OPTIONAL MATCH (me)<-[:is_sticker]-(sticker:Sticker)
+        OPTIONAL MATCH (me)<-[:creator_of_sticker]-(sticker:Sticker)
         WHERE sticker.deleted_at = "" 
         RETURN collect(sticker) AS stickers
         """
@@ -205,7 +206,7 @@ async def delete_sticker(
         query = f"""
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (sticker:Sticker {{node_id: '{delete_sticker_request.sticker_node_id}'}})
-        OPTIONAL MATCH (sticker)-[r:creator]->(me)
+        OPTIONAL MATCH (sticker)-[r:creator_of_sticker]->(me)
         WITH me, sticker, r
         CALL apoc.do.case(
         [
@@ -213,7 +214,7 @@ async def delete_sticker(
             sticker IS NULL, 'RETURN "Sticker does not exist" AS message',
             r IS NULL, 'RETURN "Relationship does not exist" AS message'
         ],
-        'SET s.deleted_at = "{datetimenow}"  RETURN "Sticker and relationship deleted" AS message',
+        'SET sticker.deleted_at = "{datetimenow}"  RETURN "Sticker and relationship deleted" AS message',
         {{sticker: sticker}}
         ) YIELD value
         RETURN value.message AS message
@@ -223,8 +224,8 @@ async def delete_sticker(
         record = result.single()
 
         if record["message"] != "Sticker and relationship deleted":
+            logger.error(f"delete_sticker error: {record['message']}")
             raise HTTPException(status_code=500, detail=record["message"])
-
         return DeleteStickerResponse(message=record["message"])
 
     except HTTPException as e:
@@ -528,7 +529,8 @@ async def create_cast(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
-        
+
+
 @router.post("/cast/reply", response_model=ReplyCastResponse)
 async def put_receiver_of_sticker_as_read(
     request: Request,

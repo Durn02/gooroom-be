@@ -27,25 +27,27 @@ class Logger:
         stream_handler.setFormatter(formatter)
         self.logger.addHandler(stream_handler)
 
-    def info(self, msg):
-        self.logger.setLevel(logging.INFO)
-        self.logger.info(msg)
+    def log(self, level, msg, details=None):
+        self.logger.setLevel(level)
+        if details:
+            self.logger.log(level, f"{msg} | Details: {details}")
+        else:
+            self.logger.log(level, msg)
 
-    def debug(self, msg):
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.debug(msg)
+    def info(self, msg, details=None):
+        self.log(logging.INFO, msg, details)
 
-    def warning(self, msg):
-        self.logger.setLevel(logging.WARNING)
-        self.logger.warning(msg)
+    def debug(self, msg, details=None):
+        self.log(logging.DEBUG, msg, details)
 
-    def error(self, msg):
-        self.logger.setLevel(logging.ERROR)
-        self.logger.error(msg)
+    def warning(self, msg, details=None):
+        self.log(logging.WARNING, msg, details)
 
-    def critical(self, msg):
-        self.logger.setLevel(logging.CRITICAL)
-        self.logger.critical(msg)
+    def error(self, msg, details=None):
+        self.log(logging.ERROR, msg, details)
+
+    def critical(self, msg, details=None):
+        self.log(logging.CRITICAL, msg, details)
 
     def get_logger(self):
         return self.logger
