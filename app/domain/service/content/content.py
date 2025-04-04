@@ -25,7 +25,6 @@ from app.config.connection import (
 from .request import (
     GetStickersRequest,
     DeleteStickerRequest,
-    CreatePostRequest,
     GetPostsRequest,
     ModifyMyPostRequest,
     DeleteMyPostRequest,
