@@ -570,7 +570,7 @@ async def create_cast(
 
 
 @router.post("/cast/reply", response_model=ReplyCastResponse)
-async def put_receiver_of_sticker_as_read(
+async def put_receiver_of_cast_as_read(
     request: Request,
     session=Depends(get_session),
     reply_cast_request: ReplyCastRequest = Body(...),
