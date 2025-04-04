@@ -66,7 +66,7 @@ s3_client = boto3.client(
 async def create_sticker(
     request: Request,
     content: str = Form(...),
-    images: List[UploadFile] = File(...),
+    images: List[UploadFile] = File([]),
     session=Depends(get_session),
 ):
     uploaded_image_urls = []
