@@ -64,7 +64,7 @@ s3_client = boto3.client(
 
 
 @router.post("/sticker/create")
-async def upload(
+async def create_sticker(
     request: Request,
     content: str = Form(...),
     images: List[UploadFile] = File(...),
