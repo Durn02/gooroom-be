@@ -82,15 +82,13 @@ async def create_sticker(
             image_url = (
                 f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_key}"
             )
-            s3_upload_result = s3_client.upload_fileobj(
+            s3_client.upload_fileobj(
                 image.file,
                 S3_BUCKET_NAME,
                 s3_key,
                 ExtraArgs={"ACL": "public-read"},
             )
             uploaded_image_urls.append(image_url)
-
-        print(s3_upload_result)
 
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
@@ -299,22 +297,41 @@ async def delete_old_stickers():
 @router.post("/post/create", response_model=CreatePostResponse)
 async def create_post(
     request: Request,
+    content: str = Form(...),
+    images: List[UploadFile] = File(...),
+    is_public: bool = True,
+    title: str = Form(...),
+    tags: List[str] = Form(...),
     session=Depends(get_session),
-    create_post_request: CreatePostRequest = Body(...),
 ):
+    uploaded_image_urls = []
+    logger.info("create_post")
     token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     try:
+        for index, image in enumerate(images):
+            s3_key = f"{user_node_id}/post/{datetimenow}/{index}_{image.filename}"
+            image_url = (
+                f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_key}"
+            )
+            s3_client.upload_fileobj(
+                image.file,
+                S3_BUCKET_NAME,
+                s3_key,
+                ExtraArgs={"ACL": "public-read"},
+            )
+            uploaded_image_urls.append(image_url)
+
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
         CREATE (p:Post {{
-                content : '{create_post_request.content}',
-                image_url : {create_post_request.image_url},
-                is_public : {create_post_request.is_public},
-                title : '{create_post_request.title}',
-                tags : {create_post_request.tags},
+                content : '{content}',
+                image_url : {uploaded_image_urls},
+                is_public : {is_public},
+                title : '{title}',
+                tags : {tags},
                 created_at : '{datetimenow}',
                 node_id : randomUUID()
             }})
