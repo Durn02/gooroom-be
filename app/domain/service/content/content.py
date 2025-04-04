@@ -297,10 +297,10 @@ async def delete_old_stickers():
 async def create_post(
     request: Request,
     content: str = Form(...),
-    images: List[UploadFile] = File(...),
+    images: List[UploadFile] = File([]),
     is_public: bool = True,
     title: str = Form(...),
-    tags: List[str] = Form(...),
+    tags: List[str] = Form([""]),
     session=Depends(get_session),
 ):
     uploaded_image_urls = []
@@ -330,7 +330,7 @@ async def create_post(
                 image_url : {uploaded_image_urls},
                 is_public : {is_public},
                 title : '{title}',
-                tags : {tags},
+                tags : {tags[0]},
                 created_at : '{datetimenow}',
                 node_id : randomUUID()
             }})
