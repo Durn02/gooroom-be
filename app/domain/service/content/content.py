@@ -2,11 +2,27 @@
 import asyncio
 from typing import List
 from datetime import datetime, timezone
-from fastapi import HTTPException, APIRouter, Depends, Body, Request
+from fastapi import (
+    File,
+    Form,
+    HTTPException,
+    APIRouter,
+    Depends,
+    Body,
+    Request,
+    UploadFile,
+)
+import boto3
+
 from app.utils import verify_access_token, Logger
 from app.config.connection import get_session
+from app.config.connection import (
+    S3_BUCKET_NAME,
+    S3_REGION,
+    S3_ACCESS_KEY,
+    S3_SECRET_KEY,
+)
 from .request import (
-    CreateStickerRequest,
     GetStickersRequest,
     DeleteStickerRequest,
     CreatePostRequest,
@@ -38,24 +54,49 @@ router = APIRouter()
 ACCESS_TOKEN = "access_token"
 
 
-@router.post("/sticker/create", response_model=CreateStickerResponse)
-async def create_sticker(
+# S3 클라이언트 생성
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=S3_ACCESS_KEY,
+    aws_secret_access_key=S3_SECRET_KEY,
+    region_name=S3_REGION,
+)
+
+
+@router.post("/sticker/create")
+async def upload(
     request: Request,
+    content: str = Form(...),
+    images: List[UploadFile] = File(...),
     session=Depends(get_session),
-    create_sticker_request: CreateStickerRequest = Body(...),
 ):
+    uploaded_image_urls = []
     logger.info("create_sticker")
     token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
-
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     try:
+        for index, image in enumerate(images):
+            s3_key = f"{user_node_id}/sticker/{datetimenow}/{index}_{image.filename}"
+            image_url = (
+                f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_key}"
+            )
+            s3_upload_result = s3_client.upload_fileobj(
+                image.file,
+                S3_BUCKET_NAME,
+                s3_key,
+                ExtraArgs={"ACL": "public-read"},
+            )
+            uploaded_image_urls.append(image_url)
+
+        print(s3_upload_result)
+
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
         CREATE (s:Sticker {{
-                content : '{create_sticker_request.content}',
-                image_url : {create_sticker_request.image_url},
+                content : '{content}',
+                image_url : {uploaded_image_urls},
                 created_at : '{datetimenow}',
                 deleted_at : '',
                 node_id : randomUUID()
@@ -63,7 +104,6 @@ async def create_sticker(
         CREATE (s)-[creator:creator_of_sticker {{edge_id : randomUUID()}}]->(u)
         RETURN creator
         """
-        print(query)
         result = session.run(query)
         record = result.single()
         logger.info(f"""create_sticker success {record}""")
@@ -72,11 +112,9 @@ async def create_sticker(
             raise HTTPException(status_code=404, detail=f"no such user {user_node_id}")
 
         return CreateStickerResponse()
-
-    except HTTPException as e:
-        raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"S3 upload fails: {str(e)}")
+
     finally:
         session.close()
 
