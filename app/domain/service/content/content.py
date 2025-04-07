@@ -320,9 +320,11 @@ async def create_post(
     try:
         for index, image in enumerate(images):
             s3_key = f"{user_node_id}/post/{datetimenow}/{index}_{image.filename}"
-            image_url = (
-                f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_key}"
-            )
+            encoded_s3_key = quote(s3_key)
+            image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{encoded_s3_key}"
+
+            mime_type, _ = mimetypes.guess_type(image.filename)
+            extra_args = {"ContentType": mime_type, "ACL": "public-read"}
             s3_client.upload_fileobj(
                 image.file,
                 S3_BUCKET_NAME,
