@@ -1,7 +1,7 @@
 # backend/domain/service/content/content.py
 import asyncio
 import mimetypes
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 from typing import List
 from datetime import datetime, timezone
 from fastapi import (
@@ -245,6 +245,7 @@ async def delete_sticker(
         if len(delete_sticker_request.sticker_image_urls) != 0:
             for image_url in delete_sticker_request.sticker_image_urls:
                 file_name = "/".join(image_url.split("/")[3:])
+                file_name = unquote(file_name)
                 s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
         query = f"""
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
@@ -329,7 +330,7 @@ async def create_post(
                 image.file,
                 S3_BUCKET_NAME,
                 s3_key,
-                ExtraArgs={"ACL": "public-read"},
+                ExtraArgs=extra_args,
             )
             uploaded_image_urls.append(image_url)
 
@@ -514,9 +515,11 @@ async def delete_my_post(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
+        print(delete_my_post_request)
         if len(delete_my_post_request.post_image_urls) != 0:
             for image_url in delete_my_post_request.post_image_urls:
                 file_name = "/".join(image_url.split("/")[3:])
+                file_name = unquote(file_name)
                 s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
 
         query = f"""
