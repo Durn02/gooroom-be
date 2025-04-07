@@ -15,6 +15,11 @@ from fastapi import (
     UploadFile,
 )
 import boto3
+from botocore.exceptions import (
+    ConnectTimeoutError,
+    ReadTimeoutError,
+    EndpointConnectionError,
+)
 
 from app.utils import verify_access_token, Logger
 from app.config.connection import get_session
@@ -246,7 +251,14 @@ async def delete_sticker(
             for image_url in delete_sticker_request.sticker_image_urls:
                 file_name = "/".join(image_url.split("/")[3:])
                 file_name = unquote(file_name)
-                s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
+                try:
+                    s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
+                except ConnectTimeoutError:
+                    logger.error("스티커 삭제 S3 연결 시간 초과 - 재시도 필요")
+                except ReadTimeoutError:
+                    logger.error("스티커 삭제 S3 응답 대기 시간 초과 - 재시도 필요")
+                except EndpointConnectionError:
+                    logger.error("스티커 삭제 S3 엔드포인트 연결 실패 - URL 확인 필요")
         query = f"""
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (sticker:Sticker {{node_id: '{delete_sticker_request.sticker_node_id}'}})
@@ -515,13 +527,18 @@ async def delete_my_post(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
-        print(delete_my_post_request)
         if len(delete_my_post_request.post_image_urls) != 0:
             for image_url in delete_my_post_request.post_image_urls:
                 file_name = "/".join(image_url.split("/")[3:])
                 file_name = unquote(file_name)
-                s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
-
+                try:
+                    s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
+                except ConnectTimeoutError:
+                    logger.error("게시물 삭제 S3 연결 시간 초과 - 재시도 필요")
+                except ReadTimeoutError:
+                    logger.error("게시물 삭제 S3 응답 대기 시간 초과 - 재시도 필요")
+                except EndpointConnectionError:
+                    logger.error("게시물 삭제 S3 엔드포인트 연결 실패 - URL 확인 필요")
         query = f"""
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (p:Post {{node_id: '{delete_my_post_request.post_node_id}'}})
