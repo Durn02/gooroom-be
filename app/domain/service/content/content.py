@@ -14,21 +14,18 @@ from fastapi import (
     Request,
     UploadFile,
 )
-import boto3
 from botocore.exceptions import (
     ConnectTimeoutError,
     ReadTimeoutError,
     EndpointConnectionError,
 )
-
+from app.utils.s3_client import s3_client
+from app.config.connection import (
+    S3_REGION,
+    S3_BUCKET_NAME,
+)
 from app.utils import verify_access_token, Logger
 from app.config.connection import get_session
-from app.config.connection import (
-    S3_BUCKET_NAME,
-    S3_REGION,
-    S3_ACCESS_KEY,
-    S3_SECRET_KEY,
-)
 from .request import (
     GetStickersRequest,
     DeleteStickerRequest,
@@ -60,15 +57,6 @@ router = APIRouter()
 ACCESS_TOKEN = "access_token"
 
 
-# S3 클라이언트 생성
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=S3_ACCESS_KEY,
-    aws_secret_access_key=S3_SECRET_KEY,
-    region_name=S3_REGION,
-)
-
-
 @router.post("/sticker/create")
 async def create_sticker(
     request: Request,
@@ -79,6 +67,8 @@ async def create_sticker(
     uploaded_image_urls = []
     logger.info("create_sticker")
     token = request.cookies.get(ACCESS_TOKEN)
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
     user_node_id = verify_access_token(token)["user_node_id"]
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 

@@ -1,12 +1,16 @@
 # backend/domain/user/user.py
-from fastapi import HTTPException, APIRouter, Depends, Request
+import json
+import mimetypes
+from typing import List
+from urllib.parse import quote
+from fastapi import File, Form, HTTPException, APIRouter, Depends, Request, UploadFile
 from app.utils import verify_access_token, Logger
-from app.config.connection import get_session
+from app.utils.s3_client import s3_client
+from app.config.connection import S3_BUCKET_NAME, S3_REGION, get_session
 
 from .request import (
     MyInfoChangeWithoutTagsRequest,
     MyTagsChangeRequest,
-    MyInfoChangeRequest,
     MyGroupsChangeRequest,
 )
 
@@ -54,7 +58,12 @@ async def my_info(
 @router.put("/my/info/change")
 async def my_info_change(
     request: Request,
-    user_info: MyInfoChangeRequest,
+    # user_info: MyInfoChangeRequest,
+    my_memo: str = Form("", description="Memo for the user"),
+    nickname: str = Form(..., description="User's nickname"),
+    username: str = Form(..., description="User's full name"),
+    tags: List[str] = Form([""], description="User's tags"),
+    profile_image: UploadFile = File("", description="profile imgurl"),
     session=Depends(get_session),
 ):
     logger.info("my_info_change")
@@ -66,27 +75,45 @@ async def my_info_change(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
-        query = f"""
-        MATCH (u:User {{node_id: '{user_node_id}'}})
-        SET u.my_memo = '{user_info.my_memo}',
-            u.nickname = '{user_info.nickname}',
-            u.username = '{user_info.username}',
-            u.tags = {user_info.tags}
-            u.profile_image_url = {user_info.profile_image_url}
+        update_data = {
+            "my_memo": my_memo,
+            "nickname": nickname,
+            "username": username,
+            "tags": json.loads(tags[0]),
+        }
+
+        if profile_image:
+            # Sanitize filename and handle MIME type
+            s3_key = f"{user_node_id}/profile_image"
+            mime_type, _ = mimetypes.guess_type(profile_image.filename)
+            extra_args = {
+                "ContentType": mime_type or "application/octet-stream",
+                "ACL": "public-read",
+            }
+
+            s3_client.upload_fileobj(
+                profile_image.file,
+                S3_BUCKET_NAME,
+                s3_key,
+                ExtraArgs=extra_args,
+            )
+            update_data["profile_image_url"] = (
+                f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{quote(s3_key)}"
+            )
+
+        query = """
+        MATCH (u:User {node_id: $user_node_id})
+        SET u += $update_data
         RETURN u
         """
-        result = session.run(query)
-
+        result = session.run(query, user_node_id=user_node_id, update_data=update_data)
         record = result.single()
 
         if not record:
-            raise HTTPException(
-                status_code=400, detail="User not found or failed to update"
-            )
+            raise ValueError("User not found")
         else:
             updated_user = record["u"]
             return updated_user
-
     except HTTPException as e:
         raise e
     except Exception as e:
