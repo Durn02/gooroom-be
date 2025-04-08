@@ -83,7 +83,6 @@ async def my_info_change(
         }
 
         if profile_image:
-            # Sanitize filename and handle MIME type
             s3_key = f"{user_node_id}/profile_image"
             mime_type, _ = mimetypes.guess_type(profile_image.filename)
             extra_args = {
