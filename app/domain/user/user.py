@@ -64,6 +64,7 @@ async def my_info_change(
     username: str = Form(..., description="User's full name"),
     tags: List[str] = Form([""], description="User's tags"),
     profile_image: UploadFile = File("", description="profile imgurl"),
+    remove_profile_image: bool = Form(False, description="Remove profile image"),
     session=Depends(get_session),
 ):
     logger.info("my_info_change")
@@ -73,7 +74,6 @@ async def my_info_change(
         raise HTTPException(status_code=401, detail="Access token is missing")
 
     user_node_id = verify_access_token(token)["user_node_id"]
-
     try:
         update_data = {
             "my_memo": my_memo,
@@ -81,6 +81,16 @@ async def my_info_change(
             "username": username,
             "tags": json.loads(tags[0]),
         }
+        if remove_profile_image:
+            update_data["profile_image_url"] = None
+            s3_key = f"{user_node_id}/profile_image"
+            try:
+                s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=s3_key)
+            except Exception as e:
+                logger.error(f"Error deleting S3 object: {e}")
+                raise HTTPException(
+                    status_code=500, detail="Failed to delete profile image"
+                ) from e
 
         if profile_image:
             s3_key = f"{user_node_id}/profile_image"
