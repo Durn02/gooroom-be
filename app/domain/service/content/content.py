@@ -80,13 +80,19 @@ async def create_sticker(
 
             mime_type, _ = mimetypes.guess_type(image.filename)
             extra_args = {"ContentType": mime_type, "ACL": "public-read"}
-            s3_client.upload_fileobj(
-                image.file,
-                S3_BUCKET_NAME,
-                s3_key,
-                ExtraArgs=extra_args,
-            )
-            uploaded_image_urls.append(image_url)
+            try:
+                s3_client.upload_fileobj(
+                    image.file,
+                    S3_BUCKET_NAME,
+                    s3_key,
+                    ExtraArgs=extra_args,
+                )
+                uploaded_image_urls.append(image_url)
+            except s3_client.exceptions.ClientError as e:
+                logger.error(f"Failed to upload {image.filename} to S3: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to upload {image.filename} to S3"
+                ) from e
 
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
@@ -328,13 +334,19 @@ async def create_post(
 
             mime_type, _ = mimetypes.guess_type(image.filename)
             extra_args = {"ContentType": mime_type, "ACL": "public-read"}
-            s3_client.upload_fileobj(
-                image.file,
-                S3_BUCKET_NAME,
-                s3_key,
-                ExtraArgs=extra_args,
-            )
-            uploaded_image_urls.append(image_url)
+            try:
+                s3_client.upload_fileobj(
+                    image.file,
+                    S3_BUCKET_NAME,
+                    s3_key,
+                    ExtraArgs=extra_args,
+                )
+                uploaded_image_urls.append(image_url)
+            except s3_client.exceptions.ClientError as e:
+                logger.error(f"Failed to upload {image.filename} to S3: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to upload {image.filename} to S3"
+                ) from e
 
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})

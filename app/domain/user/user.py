@@ -100,12 +100,19 @@ async def my_info_change(
                 "ACL": "public-read",
             }
 
-            s3_client.upload_fileobj(
-                profile_image.file,
-                S3_BUCKET_NAME,
-                s3_key,
-                ExtraArgs=extra_args,
-            )
+            try:
+                s3_client.upload_fileobj(
+                    profile_image.file,
+                    S3_BUCKET_NAME,
+                    s3_key,
+                    ExtraArgs=extra_args,
+                )
+            except s3_client.exceptions.ClientError as e:
+                logger.error(f"Failed to upload {profile_image.file} to S3: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to upload {profile_image.file} to S3",
+                ) from e
             update_data["profile_image_url"] = (
                 f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{quote(s3_key)}"
             )
