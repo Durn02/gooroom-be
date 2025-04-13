@@ -3,7 +3,16 @@ import json
 import mimetypes
 from typing import List
 from urllib.parse import quote
-from fastapi import File, Form, HTTPException, APIRouter, Depends, Request, UploadFile
+from fastapi import (
+    Body,
+    File,
+    Form,
+    HTTPException,
+    APIRouter,
+    Depends,
+    Request,
+    UploadFile,
+)
 from app.utils import verify_access_token, Logger
 from app.utils.s3_client import s3_client
 from app.config.connection import S3_BUCKET_NAME, S3_REGION, get_session
@@ -12,13 +21,12 @@ from .request import (
     MyInfoChangeWithoutTagsRequest,
     MyTagsChangeRequest,
     MyGroupsChangeRequest,
+    SearchGetMembersRequest,
 )
 
-ACCESS_TOKEN = "access_token"
-router = APIRouter()
 logger = Logger(__file__)
-
 router = APIRouter()
+ACCESS_TOKEN = "access_token"
 
 
 @router.get("/my/info")
@@ -249,6 +257,54 @@ async def my_groups_change(
         else:
             updated_user = record["u"]
             return updated_user
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/search/get-members")
+async def search_get_memgers(
+    request: Request,
+    session=Depends(get_session),
+    search: SearchGetMembersRequest = Body(...),
+):
+    logger.info("get_members")
+    token = request.cookies.get(ACCESS_TOKEN)
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
+
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    if not user_node_id:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
+    try:
+        query = f"""
+        MATCH (n:User)
+        WHERE 
+        (toLower(n.nickname) CONTAINS '{search.query}' OR 
+        toLower(n.username) CONTAINS '{search.query}')
+        AND n.node_id <> '{user_node_id}'
+        RETURN 
+        n.nickname AS nickname,
+        n.username AS username,
+        n.profile_image_url AS profile_image_url,
+        n.node_id AS node_id
+        ORDER BY n.username
+        """
+        print(query)
+        result = session.run(query)
+        record = result.data()
+
+        if not record:
+            raise HTTPException(status_code=400, detail="No users found")
+        else:
+            print(record)
+            return record
 
     except HTTPException as e:
         raise e
