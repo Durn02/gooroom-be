@@ -21,6 +21,8 @@ CALL apoc.do.when(
     CREATE (u:User)
     SET u = user
     SET u.my_memo = ""
+    SET u.tags = [""]
+    SET u.groups = ""
     SET u.node_id = randomUUID()
     CREATE (pd)-[:is_info]->(u)
     RETURN "success" AS message
@@ -118,6 +120,8 @@ CREATE (pd:PrivateData {
 CREATE (u:User)
 SET u = user
 SET u.my_memo = ""
+SET u.tags = []
+SET u.groups = "{ default: \'#808080\'}"
 SET u.node_id = randomUUID()
 CREATE (pd)-[:is_info]->(u)
 
