@@ -165,10 +165,11 @@ async def accept_knock(
         query = f"""
         MATCH (to_user:User {{node_id: '{user_node_id}'}})<-[k1:knock {{edge_id:'{accept_knock_request.knock_id}'}}]-(from_user:User)
             WHERE NOT (to_user)-[:is_roommate]-(from_user)
-        OPTIONAL MATCH (from_user)-[knock_edge:knock]-(to_user)
+        OPTIONAL MATCH (from_user)-[knock_edge:knock]->(to_user)
+        OPTIONAL MATCH (to_user)-[knock_edge2:knock]->(from_user)
         CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(to_user)
         CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: '',new:true}}]->(from_user)
-        DELETE knock_edge
+        DELETE knock_edge, knock_edge2
         WITH from_user,to_user
         OPTIONAL MATCH (from_user)-[:is_roommate]->(new_neighbor:User)
             WHERE new_neighbor <> to_user AND NOT (from_user)-[:block]-(new_neighbor)
