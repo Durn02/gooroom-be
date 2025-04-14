@@ -1,15 +1,34 @@
 # backend/domain/service/content/content.py
 import asyncio
+import mimetypes
+from urllib.parse import quote, unquote
 from typing import List
 from datetime import datetime, timezone
-from fastapi import HTTPException, APIRouter, Depends, Body, Request
+from fastapi import (
+    File,
+    Form,
+    HTTPException,
+    APIRouter,
+    Depends,
+    Body,
+    Request,
+    UploadFile,
+)
+from botocore.exceptions import (
+    ConnectTimeoutError,
+    ReadTimeoutError,
+    EndpointConnectionError,
+)
+from app.utils.s3_client import s3_client
+from app.config.connection import (
+    S3_REGION,
+    S3_BUCKET_NAME,
+)
 from app.utils import verify_access_token, Logger
 from app.config.connection import get_session
 from .request import (
-    CreateStickerRequest,
     GetStickersRequest,
     DeleteStickerRequest,
-    CreatePostRequest,
     GetPostsRequest,
     ModifyMyPostRequest,
     DeleteMyPostRequest,
@@ -38,24 +57,48 @@ router = APIRouter()
 ACCESS_TOKEN = "access_token"
 
 
-@router.post("/sticker/create", response_model=CreateStickerResponse)
+@router.post("/sticker/create")
 async def create_sticker(
     request: Request,
+    content: str = Form(""),
+    images: List[UploadFile] = File([]),
     session=Depends(get_session),
-    create_sticker_request: CreateStickerRequest = Body(...),
 ):
+    uploaded_image_urls = []
     logger.info("create_sticker")
     token = request.cookies.get(ACCESS_TOKEN)
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
     user_node_id = verify_access_token(token)["user_node_id"]
-
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     try:
+        for index, image in enumerate(images):
+            s3_key = f"{user_node_id}/sticker/{datetimenow}/{index}_{image.filename}"
+            encoded_s3_key = quote(s3_key)
+            image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{encoded_s3_key}"
+
+            mime_type, _ = mimetypes.guess_type(image.filename)
+            extra_args = {"ContentType": mime_type, "ACL": "public-read"}
+            try:
+                s3_client.upload_fileobj(
+                    image.file,
+                    S3_BUCKET_NAME,
+                    s3_key,
+                    ExtraArgs=extra_args,
+                )
+                uploaded_image_urls.append(image_url)
+            except s3_client.exceptions.ClientError as e:
+                logger.error(f"Failed to upload {image.filename} to S3: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to upload {image.filename} to S3"
+                ) from e
+
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
         CREATE (s:Sticker {{
-                content : '{create_sticker_request.content}',
-                image_url : {create_sticker_request.image_url},
+                content : '{content}',
+                image_url : {uploaded_image_urls},
                 created_at : '{datetimenow}',
                 deleted_at : '',
                 node_id : randomUUID()
@@ -63,7 +106,6 @@ async def create_sticker(
         CREATE (s)-[creator:creator_of_sticker {{edge_id : randomUUID()}}]->(u)
         RETURN creator
         """
-        print(query)
         result = session.run(query)
         record = result.single()
         logger.info(f"""create_sticker success {record}""")
@@ -72,11 +114,9 @@ async def create_sticker(
             raise HTTPException(status_code=404, detail=f"no such user {user_node_id}")
 
         return CreateStickerResponse()
-
-    except HTTPException as e:
-        raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"S3 upload fails: {str(e)}")
+
     finally:
         session.close()
 
@@ -203,6 +243,18 @@ async def delete_sticker(
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     try:
+        if len(delete_sticker_request.sticker_image_urls) != 0:
+            for image_url in delete_sticker_request.sticker_image_urls:
+                file_name = "/".join(image_url.split("/")[3:])
+                file_name = unquote(file_name)
+                try:
+                    s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
+                except ConnectTimeoutError:
+                    logger.error("스티커 삭제 S3 연결 시간 초과 - 재시도 필요")
+                except ReadTimeoutError:
+                    logger.error("스티커 삭제 S3 응답 대기 시간 초과 - 재시도 필요")
+                except EndpointConnectionError:
+                    logger.error("스티커 삭제 S3 엔드포인트 연결 실패 - URL 확인 필요")
         query = f"""
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (sticker:Sticker {{node_id: '{delete_sticker_request.sticker_node_id}'}})
@@ -261,22 +313,49 @@ async def delete_old_stickers():
 @router.post("/post/create", response_model=CreatePostResponse)
 async def create_post(
     request: Request,
+    content: str = Form(...),
+    images: List[UploadFile] = File([]),
+    is_public: bool = True,
+    title: str = Form(...),
+    tags: List[str] = Form([""]),
     session=Depends(get_session),
-    create_post_request: CreatePostRequest = Body(...),
 ):
+    uploaded_image_urls = []
+    logger.info("create_post")
     token = request.cookies.get(ACCESS_TOKEN)
     user_node_id = verify_access_token(token)["user_node_id"]
     datetimenow = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     try:
+        for index, image in enumerate(images):
+            s3_key = f"{user_node_id}/post/{datetimenow}/{index}_{image.filename}"
+            encoded_s3_key = quote(s3_key)
+            image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{encoded_s3_key}"
+
+            mime_type, _ = mimetypes.guess_type(image.filename)
+            extra_args = {"ContentType": mime_type, "ACL": "public-read"}
+            try:
+                s3_client.upload_fileobj(
+                    image.file,
+                    S3_BUCKET_NAME,
+                    s3_key,
+                    ExtraArgs=extra_args,
+                )
+                uploaded_image_urls.append(image_url)
+            except s3_client.exceptions.ClientError as e:
+                logger.error(f"Failed to upload {image.filename} to S3: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to upload {image.filename} to S3"
+                ) from e
+
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
         CREATE (p:Post {{
-                content : '{create_post_request.content}',
-                image_url : {create_post_request.image_url},
-                is_public : {create_post_request.is_public},
-                title : '{create_post_request.title}',
-                tags : {create_post_request.tags},
+                content : '{content}',
+                image_url : {uploaded_image_urls},
+                is_public : {is_public},
+                title : '{title}',
+                tags : {tags[0]},
                 created_at : '{datetimenow}',
                 node_id : randomUUID()
             }})
@@ -450,6 +529,18 @@ async def delete_my_post(
     user_node_id = verify_access_token(token)["user_node_id"]
 
     try:
+        if len(delete_my_post_request.post_image_urls) != 0:
+            for image_url in delete_my_post_request.post_image_urls:
+                file_name = "/".join(image_url.split("/")[3:])
+                file_name = unquote(file_name)
+                try:
+                    s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=file_name)
+                except ConnectTimeoutError:
+                    logger.error("게시물 삭제 S3 연결 시간 초과 - 재시도 필요")
+                except ReadTimeoutError:
+                    logger.error("게시물 삭제 S3 응답 대기 시간 초과 - 재시도 필요")
+                except EndpointConnectionError:
+                    logger.error("게시물 삭제 S3 엔드포인트 연결 실패 - URL 확인 필요")
         query = f"""
         OPTIONAL MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (p:Post {{node_id: '{delete_my_post_request.post_node_id}'}})
@@ -532,7 +623,7 @@ async def create_cast(
 
 
 @router.post("/cast/reply", response_model=ReplyCastResponse)
-async def put_receiver_of_sticker_as_read(
+async def put_receiver_of_cast_as_read(
     request: Request,
     session=Depends(get_session),
     reply_cast_request: ReplyCastRequest = Body(...),

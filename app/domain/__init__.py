@@ -2,12 +2,16 @@
 from .admin import admin_router
 from .auth import auth_router
 
-from .service import block_router
-
 # mute_router, content_router, friend_router
 from .user import user_router
 from .test import test_router
-from .service import friend_router, content_router, mute_router, block_router,alert_router
+from .service import (
+    friend_router,
+    content_router,
+    mute_router,
+    block_router,
+    alert_router,
+)
 
 __all__ = [
     "admin_router",

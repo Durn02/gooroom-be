@@ -1,12 +1,11 @@
+import os
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.domain.api import router as domain_api_router
-from app.domain.service.content.content import delete_old_stickers, delete_old_casts
 from app.utils import Logger
-from dotenv import load_dotenv
-import os
 
 scheduler = AsyncIOScheduler()
 logger = Logger("main.py")

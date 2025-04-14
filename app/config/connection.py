@@ -25,3 +25,9 @@ driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 def get_session():
     session = driver.session(database=NEO4J_DATABASE)
     return session
+
+
+S3_BUCKET_NAME = os.getenv("AMPLIFY_BUCKET")
+S3_REGION = os.getenv("AWS_REGION")
+S3_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
+S3_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")

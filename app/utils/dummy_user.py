@@ -7,6 +7,7 @@ def create_dummy_user(number_of_nodes: int):
             email=f"test{i}@gooroom.com",
             password="$2b$12$K4kuDTzku5n.xyXYd45lUODLIZH5FGHY7upzFAGie20nQkG8iTibS",
             tags=["string"],
+            groups=["string"],
             nickname=f"nickname{i}",
             username=f"test{i}",
             profile_image_url="",
