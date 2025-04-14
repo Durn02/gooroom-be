@@ -284,7 +284,7 @@ async def search_get_memgers(
 
     try:
         query = f"""
-        MATCH (n:User)
+        OPTIONAL MATCH (n:User)
         WHERE 
         (toLower(n.nickname) CONTAINS '{search.query}' OR 
         toLower(n.username) CONTAINS '{search.query}')
@@ -301,7 +301,7 @@ async def search_get_memgers(
         record = result.data()
 
         if not record:
-            raise HTTPException(status_code=400, detail="No users found")
+            raise HTTPException(status_code=400, detail="error with query")
         else:
             print(record)
             return record
