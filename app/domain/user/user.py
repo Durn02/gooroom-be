@@ -284,26 +284,32 @@ async def search_get_memgers(
 
     try:
         query = f"""
+        MATCH (me:User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (n:User)
-        WHERE 
-        (toLower(n.nickname) CONTAINS '{search.query}' OR 
-        toLower(n.username) CONTAINS '{search.query}')
-        AND n.node_id <> '{user_node_id}'
+        WHERE (
+            toLower(n.nickname) CONTAINS '{search.query}' 
+            OR toLower(n.username) CONTAINS '{search.query}'
+        )
+        AND n.node_id <> me.node_id
+        AND NOT EXISTS((me)<-[:block]->(n))
+        WITH me, n
+        OPTIONAL MATCH (me)-[r:is_roommate]->(n)
+        OPTIONAL MATCH (me)-[k:knock]->(n)
         RETURN 
         n.nickname AS nickname,
         n.username AS username,
         n.profile_image_url AS profile_image_url,
+        r IS NOT NULL AS is_roommate,
+        k IS NOT NULL AS sent_knock,
         n.node_id AS node_id
-        ORDER BY n.username
+        ORDER BY n.username        
         """
-        print(query)
         result = session.run(query)
         record = result.data()
 
         if not record:
             raise HTTPException(status_code=400, detail="error with query")
         else:
-            print(record)
             return record
 
     except HTTPException as e:
