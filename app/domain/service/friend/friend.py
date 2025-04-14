@@ -53,8 +53,9 @@ async def send_knock(
 
         OPTIONAL MATCH (from_user)-[k:knock]->(to_user)
         OPTIONAL MATCH (from_user)-[b:block]->(to_user)
+        OPTIONAL MATCH (to_user)-[r:is_roommate]->(from_user)
 
-        WITH from_user, to_user, k, b
+        WITH from_user, to_user, k, b, r
 
         CALL apoc.do.case(
         [
@@ -62,7 +63,8 @@ async def send_knock(
             from_user IS NULL, 'RETURN "User does not exist" AS message',
             to_user IS NULL, 'RETURN "User does not exist" AS message',
             k IS NOT NULL, 'RETURN "knock already sent" AS message',
-            b IS NOT NULL, 'RETURN "blocked" AS message'
+            b IS NOT NULL, 'RETURN "User does not exist" AS message',
+            r IS NOT NULL, 'RETURN "already roommate" AS message'
         ],
         'CREATE (from_user)-[k: knock {{edge_id: \\\'{knock_edge_id}\\\'}}]->(to_user) RETURN "send knock successfully" AS message',
         {{from_user:from_user, to_user:to_user}}
