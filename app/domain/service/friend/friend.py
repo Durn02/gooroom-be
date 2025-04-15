@@ -300,7 +300,7 @@ async def get_members(
             WITH collect({{roommate_edge:properties(r1),roommate:properties(endNode(r1)),neighbors:ns}}) as collected,collect(endNode(r1)) as roommates, me
             OPTIONAL MATCH (me)-[r1:is_roommate]->(r:User)
             OPTIONAL MATCH (r)-[:is_roommate]->(n:User)
-            WHERE n<>me AND NOT (me)-[:block]->(n) AND NOT n in roommates
+            WHERE n<>me AND NOT (me)<-[:block]->(n) AND NOT n in roommates
             RETURN me,collect(DISTINCT n) as pure_neighbors,collected as roommatesWithNeighbors    
         """
         result = session.run(query)
