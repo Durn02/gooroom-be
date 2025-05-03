@@ -44,6 +44,7 @@ async def send_knock(
     token = request.cookies.get(ACCESS_TOKEN)
     from_user_node_id = verify_access_token(token)["user_node_id"]
     to_user_node_id = send_knock_request.to_user_node_id
+    group = send_knock_request.group
     knock_edge_id = str(uuid.uuid4())
 
     try:
@@ -66,11 +67,12 @@ async def send_knock(
             b IS NOT NULL, 'RETURN "User does not exist" AS message',
             r IS NOT NULL, 'RETURN "already roommate" AS message'
         ],
-        'CREATE (from_user)-[k: knock {{edge_id: \\\'{knock_edge_id}\\\'}}]->(to_user) RETURN "send knock successfully" AS message',
+        'CREATE (from_user)-[k: knock {{edge_id: \\\'{knock_edge_id}\\\', group: \\\'{group}\\\'}}]->(to_user) RETURN "send knock successfully" AS message',
         {{from_user:from_user, to_user:to_user}}
         ) YIELD value
         RETURN value.message AS message
     """
+        print(query)
 
         result = session.run(query)
         record = result.single()
@@ -167,8 +169,9 @@ async def accept_knock(
             WHERE NOT (to_user)-[:is_roommate]-(from_user)
         OPTIONAL MATCH (from_user)-[knock_edge:knock]->(to_user)
         OPTIONAL MATCH (to_user)-[knock_edge2:knock]->(from_user)
-        CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: ''}}]->(to_user)
+        CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: knock_edge.group}}]->(to_user)
         CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: '',new:true}}]->(from_user)
+        SET from_user.groups = from_user.groups + knock_edge.group
         DELETE knock_edge, knock_edge2
         WITH from_user,to_user
         OPTIONAL MATCH (from_user)-[:is_roommate]->(new_neighbor:User)
@@ -263,7 +266,6 @@ async def accept_knock_by_link(
 
         result = session.run(query)
         record = result.single()
-        print(record)
         if not record:
             raise HTTPException(
                 status_code=400, detail="Cannot create is_roommate relationship"
