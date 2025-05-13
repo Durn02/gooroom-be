@@ -134,7 +134,7 @@ async def get_stickers(
         query = f"""
         OPTIONAL MATCH (me: User {{node_id: '{user_node_id}'}})
         OPTIONAL MATCH (friend:User {{node_id: '{get_sticker_request.user_node_id}'}})
-        OPTIONAL MATCH (friend)<-[:creator]-(sticker:Sticker)
+        OPTIONAL MATCH (friend)<-[:creator_of_sticker]-(sticker:Sticker)
         WHERE sticker.deleted_at = ""
         WITH friend, me, collect(sticker) AS stickers
         RETURN 
@@ -146,6 +146,7 @@ async def get_stickers(
             ELSE "get stickers"
         END AS message, stickers
         """
+        print(query)
 
         result = session.run(query)
         record = result.single()

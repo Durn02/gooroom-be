@@ -371,6 +371,7 @@ async def pw_reset(
         random_password = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
         )
+        # random_password = "String123!"
         hashed_password = hash_password(random_password)
         # print(hashed_password, random_password)
         query = f"""
