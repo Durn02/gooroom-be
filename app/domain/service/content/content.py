@@ -146,7 +146,6 @@ async def get_stickers(
             ELSE "get stickers"
         END AS message, stickers
         """
-        print(query)
 
         result = session.run(query)
         record = result.single()

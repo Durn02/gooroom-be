@@ -72,7 +72,6 @@ async def send_knock(
         ) YIELD value
         RETURN value.message AS message
     """
-        print(query)
 
         result = session.run(query)
         record = result.single()
