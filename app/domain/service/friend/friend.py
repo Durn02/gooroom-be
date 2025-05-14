@@ -170,7 +170,7 @@ async def accept_knock(
         OPTIONAL MATCH (from_user)-[knock_edge:knock]->(to_user)
         OPTIONAL MATCH (to_user)-[knock_edge2:knock]->(from_user)
         CREATE (from_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: knock_edge.group}}]->(to_user)
-        CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: '',new:true}}]->(from_user)
+        CREATE (to_user)-[:is_roommate {{memo: '', edge_id: randomUUID(),group: '{accept_knock_request.group}',new:true}}]->(from_user)
         SET from_user.groups = from_user.groups + knock_edge.group
         DELETE knock_edge, knock_edge2
         WITH from_user,to_user
