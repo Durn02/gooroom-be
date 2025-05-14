@@ -9,3 +9,4 @@ from .modify_memo_request import ModifyMemoResponse
 from .reject_knock_response import RejectKnockResponse
 from .modify_group_request import ModifyGroupResponse
 from .get_roommate_response import GetRoommateResponse
+from .get_groups_name_and_number_response import GetGroupsNameAndNumberResponse
