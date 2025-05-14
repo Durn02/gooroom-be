@@ -243,9 +243,10 @@ async def my_groups_change(
     try:
         query = f"""
         MATCH (u:User {{node_id: '{user_node_id}'}})
-        SET u.groups = '{user_groups_info.groups}'
+        SET u.groups = {user_groups_info.groups}
         RETURN u
         """
+        print(query)
         result = session.run(query)
 
         record = result.single()

@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 import uuid
 from fastapi import HTTPException, APIRouter, Depends, Body, Request
-from app.utils import verify_access_token, Logger, dispatcher
+from app.utils import verify_access_token, Logger
 from app.config.connection import get_session
 from .request import (
     SendKnockRequest,
@@ -24,6 +24,7 @@ from .response import (
     ModifyMemoResponse,
     RejectKnockResponse,
     ModifyGroupResponse,
+    GetGroupsNameAndNumberResponse,
 )
 import os
 from dotenv import load_dotenv
@@ -72,7 +73,6 @@ async def send_knock(
         ) YIELD value
         RETURN value.message AS message
     """
-        print(query)
 
         result = session.run(query)
         record = result.single()
@@ -479,6 +479,46 @@ async def modify_memo(
             )
 
         return ModifyMemoResponse()
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
+@router.get(
+    "/group/get-groups-name-and-number", response_model=GetGroupsNameAndNumberResponse
+)
+async def get_group(
+    request: Request,
+    session=Depends(get_session),
+):
+    logger.info("get_groups_name_and_number")
+    token = request.cookies.get(ACCESS_TOKEN)
+    user_node_id = verify_access_token(token)["user_node_id"]
+
+    try:
+        query = f"""
+        MATCH (u:User {{node_id: '{user_node_id}'}})
+        WITH u, u.groups AS myGroups
+        UNWIND myGroups AS name
+        OPTIONAL MATCH (u)-[r:is_roommate]->(f:User)
+        WHERE r.group = name
+        RETURN name, COUNT(r) as count
+        """
+
+        result = session.run(query)
+        record = result.data()
+
+        if not record:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No such friend {user_node_id} to get group",
+            )
+
+        return GetGroupsNameAndNumberResponse(group_members=record)
 
     except HTTPException as e:
         raise e

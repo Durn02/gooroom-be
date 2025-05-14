@@ -1,9 +1,11 @@
 from pydantic import BaseModel
 from typing import List
 
+
 class KnockData(BaseModel):
     edge_id: str
     nickname: str
+
 
 class GetKnocksResponse(BaseModel):
     knocks: List[KnockData]

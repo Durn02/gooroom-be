@@ -182,7 +182,7 @@ async def signup(
                 , tags: {signup_request.tags}
                 , my_memo: ''
                 , node_id: '{user_node_id}'
-                , groups: "{{ default: '#808080'}}"
+                , groups: ['']
                 }})
         CREATE (new_p)-[:is_info]->(u)
         RETURN p,new_p,u
@@ -372,7 +372,6 @@ async def pw_reset(
             random.choices(string.ascii_letters + string.digits, k=10)
         )
         hashed_password = hash_password(random_password)
-        # print(hashed_password, random_password)
         query = f"""
         MATCH (p:PrivateData {{email: '{pw_reset_request.email}'}})
         WHERE NOT p.grant = 'not-verified' 
