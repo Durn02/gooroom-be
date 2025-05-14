@@ -50,8 +50,8 @@ from .response import (
     GetContentsResponse,
     GetNewContentsResponse,
     GetNeighborsWithStickerResponse,
-    GetCastRepliesResponse
-    ReplyCastResponse,
+    GetCastRepliesResponse,
+    ReplyCastResponse
 )
 
 logger = Logger(__file__)
