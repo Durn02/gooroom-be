@@ -509,7 +509,6 @@ async def get_group(
         RETURN name, COUNT(r) as count
 
         """
-        print(query)
 
         result = session.run(query)
         record = result.data()
