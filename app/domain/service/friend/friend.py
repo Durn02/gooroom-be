@@ -507,7 +507,6 @@ async def get_group(
         OPTIONAL MATCH (u)-[r:is_roommate]->(f:User)
         WHERE r.group = name
         RETURN name, COUNT(r) as count
-
         """
 
         result = session.run(query)

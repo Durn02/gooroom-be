@@ -182,7 +182,7 @@ async def signup(
                 , tags: {signup_request.tags}
                 , my_memo: ''
                 , node_id: '{user_node_id}'
-                , groups: "{{ default: '#808080'}}"
+                , groups: ['']
                 }})
         CREATE (new_p)-[:is_info]->(u)
         RETURN p,new_p,u
