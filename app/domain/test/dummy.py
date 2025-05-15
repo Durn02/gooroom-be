@@ -22,7 +22,7 @@ CALL apoc.do.when(
     SET u = user
     SET u.my_memo = ""
     SET u.tags = []
-    SET u.groups = ['']
+    SET u.groups = [""]
     SET u.node_id = randomUUID()
     CREATE (pd)-[:is_info]->(u)
     RETURN "success" AS message
