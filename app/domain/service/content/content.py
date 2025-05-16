@@ -302,7 +302,6 @@ async def delete_old_stickers():
 
         result = session.run(query)
         record = result.single()
-        logger.info(f"delete_old_stickers : {record}")
 
     except Exception as e:
         raise e
@@ -663,14 +662,13 @@ async def delete_old_casts():
     try:
         query = f"""
         MATCH (cast_node:Cast)
-        WHERE datetime(cast_node.created_at)+duration({{hours:cast_node.duration}}) <= datetime()
+        WHERE datetime(cast_node.created_at)+duration({{minutes:cast_node.duration}}) <= datetime()
         SET cast_node.deleted_at = '{datetimenow}'
         return cast_node
         """
         result = session.run(query)
         record = result.data()
 
-        logger.info(f"delete_old_casts : {record}")
 
     except Exception as e:
         raise e
